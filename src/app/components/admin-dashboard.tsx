@@ -60,20 +60,20 @@ const KPICard = ({
   color: string; 
   trend?: string;
 }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+  <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 hover:shadow transition-shadow">
     <div className="flex items-start justify-between">
-      <div>
-        <p className="text-sm text-slate-600 mb-1">{title}</p>
-        <h3 className="text-3xl font-bold text-slate-800">{value}</h3>
+      <div className="flex-1">
+        <p className="text-xs text-slate-600 mb-1">{title}</p>
+        <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
         {trend && (
-          <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
-            <TrendingUp size={14} />
+          <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
+            <TrendingUp size={12} />
             {trend}
           </p>
         )}
       </div>
-      <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center`}>
-        <Icon size={24} className="text-white" />
+      <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center flex-shrink-0 ml-2`}>
+        <Icon size={20} className="text-white" />
       </div>
     </div>
   </div>
@@ -81,9 +81,9 @@ const KPICard = ({
 
 export function AdminDashboard() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Tổng Máy Đã Bán"
           value="335"
@@ -114,136 +114,127 @@ export function AdminDashboard() {
       </div>
 
       {/* AI Insight Panel */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-200 p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-sm border border-blue-200 p-4">
+        <h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
           <span>🤖</span>
-          AI Summary Today
+          AI Insights
         </h3>
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg p-4 border border-blue-100">
-            <p className="text-sm text-slate-700">
-              ✅ Hệ thống đang hoạt động ổn định với 98.5% thiết bị online
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="bg-white rounded-lg p-3 border border-blue-100">
+            <p className="text-xs text-slate-700">
+              ✅ 98.5% thiết bị online
             </p>
           </div>
-          <div className="bg-white rounded-lg p-4 border border-amber-100">
-            <p className="text-sm text-slate-700">
-              ⚠️ Phát hiện 3 máy có nhiệt độ dao động bất thường tại khu vực miền Trung
+          <div className="bg-white rounded-lg p-3 border border-amber-100">
+            <p className="text-xs text-slate-700">
+              ⚠️ 3 máy nhiệt độ bất thường
             </p>
           </div>
-          <div className="bg-white rounded-lg p-4 border border-green-100">
-            <p className="text-sm text-slate-700">
-              📈 Tỉ lệ ấp nở thành công tăng 2.5% so với tháng trước
+          <div className="bg-white rounded-lg p-3 border border-green-100">
+            <p className="text-xs text-slate-700">
+              📈 Tỉ lệ nở tăng 2.5%
             </p>
           </div>
         </div>
-        <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          Ask AI
-        </button>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Revenue Chart */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
-            Doanh Thu Theo Thời Gian
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">
+            Doanh Thu 6 Tháng
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={200}>
             <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
+              <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
+              <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: '#fff', 
                   border: '1px solid #e2e8f0',
-                  borderRadius: '8px'
+                  borderRadius: '8px',
+                  fontSize: '12px'
                 }} 
               />
-              <Legend />
               <Line 
                 type="monotone" 
                 dataKey="revenue" 
                 stroke="#3b82f6" 
                 strokeWidth={2}
                 name="Doanh thu (VNĐ)"
+                dot={{ r: 3 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Success Rate Chart */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">
-            Tỉ Lệ Ấp Nở Thành Công
+        {/* Machine Type Distribution - Compact */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">
+            Phân Bổ Loại Máy
           </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={successRateData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Legend />
-              <Bar 
-                dataKey="rate" 
-                fill="#10b981" 
-                name="Tỉ lệ (%)"
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="space-y-2">
+            {machineTypeData.map((item) => {
+              const total = machineTypeData.reduce((sum, i) => sum + i.value, 0);
+              const percentage = ((item.value / total) * 100).toFixed(0);
+              return (
+                <div key={item.name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded" 
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-xs text-slate-700">{item.name}</span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-800">
+                      {item.value}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-1.5">
+                    <div 
+                      className="h-1.5 rounded-full transition-all"
+                      style={{ 
+                        width: `${percentage}%`,
+                        backgroundColor: item.color
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Machine Type Distribution */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-4">
-          Loại Máy Được Sử Dụng
+      {/* Success Rate Chart - Moved to bottom row */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+        <h3 className="text-sm font-semibold text-slate-800 mb-3">
+          Tỉ Lệ Ấp Nở Thành Công (%)
         </h3>
-        <div className="flex items-center justify-between">
-          <ResponsiveContainer width="50%" height={300}>
-            <PieChart>
-              <Pie
-                data={machineTypeData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {machineTypeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-          
-          <div className="space-y-3 flex-1">
-            {machineTypeData.map((item) => (
-              <div key={item.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-4 h-4 rounded" 
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm text-slate-700">{item.name}</span>
-                </div>
-                <span className="text-sm font-semibold text-slate-800">
-                  {item.value} máy
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={successRateData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
+            <YAxis stroke="#64748b" style={{ fontSize: '12px' }} domain={[80, 95]} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: '#fff', 
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '12px'
+              }} 
+            />
+            <Bar 
+              dataKey="rate" 
+              fill="#10b981" 
+              name="Tỉ lệ (%)"
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

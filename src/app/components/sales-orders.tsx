@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Package, ShoppingBag, Truck, CheckCircle, Clock, QrCode } from 'lucide-react';
+import { CreateOrderModal } from './create-order-modal';
+import { Pagination } from './pagination';
 
 interface Product {
   id: string;
@@ -55,6 +57,204 @@ const mockOrders: Order[] = [
     date: '2024-01-08',
     qrCode: 'INC-2024-102'
   },
+  {
+    id: 'ORD-2024-004',
+    customer: 'Phạm Thị D',
+    product: 'Máy ấp trứng 500',
+    status: 'completed',
+    amount: 18000000,
+    date: '2024-01-06',
+    qrCode: 'INC-2024-103'
+  },
+  {
+    id: 'ORD-2024-005',
+    customer: 'Hoàng Văn E',
+    product: 'Máy ấp trứng 100',
+    status: 'shipping',
+    amount: 5200000,
+    date: '2024-01-08',
+    qrCode: 'INC-2024-104'
+  },
+  {
+    id: 'ORD-2024-006',
+    customer: 'Vũ Thị F',
+    product: 'Máy ấp trứng 200',
+    status: 'deposit',
+    amount: 8500000,
+    date: '2024-01-09',
+    qrCode: 'INC-2024-105'
+  },
+  {
+    id: 'ORD-2024-007',
+    customer: 'Đặng Văn G',
+    product: 'Máy ấp trứng 50',
+    status: 'completed',
+    amount: 3500000,
+    date: '2024-01-04',
+    qrCode: 'INC-2024-106'
+  },
+  {
+    id: 'ORD-2024-008',
+    customer: 'Bùi Thị H',
+    product: 'Máy ấp trứng 1000',
+    status: 'shipping',
+    amount: 32000000,
+    date: '2024-01-08',
+    qrCode: 'INC-2024-107'
+  },
+  {
+    id: 'ORD-2024-009',
+    customer: 'Ngô Văn I',
+    product: 'Máy ấp trứng 100',
+    status: 'deposit',
+    amount: 5200000,
+    date: '2024-01-09',
+    qrCode: 'INC-2024-108'
+  },
+  {
+    id: 'ORD-2024-010',
+    customer: 'Phan Thị J',
+    product: 'Máy ấp trứng 200',
+    status: 'completed',
+    amount: 8500000,
+    date: '2024-01-05',
+    qrCode: 'INC-2024-109'
+  },
+  {
+    id: 'ORD-2024-011',
+    customer: 'Trịnh Văn K',
+    product: 'Máy ấp trứng 50',
+    status: 'shipping',
+    amount: 3500000,
+    date: '2024-01-09',
+    qrCode: 'INC-2024-110'
+  },
+  {
+    id: 'ORD-2024-012',
+    customer: 'Lý Thị L',
+    product: 'Máy ấp trứng 500',
+    status: 'deposit',
+    amount: 18000000,
+    date: '2024-01-10',
+    qrCode: 'INC-2024-111'
+  },
+  {
+    id: 'ORD-2024-013',
+    customer: 'Mai Văn M',
+    product: 'Máy ấp trứng 100',
+    status: 'completed',
+    amount: 5200000,
+    date: '2024-01-03',
+    qrCode: 'INC-2024-112'
+  },
+  {
+    id: 'ORD-2024-014',
+    customer: 'Dương Thị N',
+    product: 'Máy ấp trứng 200',
+    status: 'shipping',
+    amount: 8500000,
+    date: '2024-01-09',
+    qrCode: 'INC-2024-113'
+  },
+  {
+    id: 'ORD-2024-015',
+    customer: 'Hà Văn O',
+    product: 'Máy ấp trứng 100',
+    status: 'deposit',
+    amount: 5200000,
+    date: '2024-01-10',
+    qrCode: 'INC-2024-114'
+  },
+  {
+    id: 'ORD-2024-016',
+    customer: 'Cao Thị P',
+    product: 'Máy ấp trứng 50',
+    status: 'completed',
+    amount: 3500000,
+    date: '2024-01-04',
+    qrCode: 'INC-2024-115'
+  },
+  {
+    id: 'ORD-2024-017',
+    customer: 'Tô Văn Q',
+    product: 'Máy ấp trứng 1000',
+    status: 'shipping',
+    amount: 32000000,
+    date: '2024-01-09',
+    qrCode: 'INC-2024-116'
+  },
+  {
+    id: 'ORD-2024-018',
+    customer: 'Đinh Thị R',
+    product: 'Máy ấp trứng 200',
+    status: 'deposit',
+    amount: 8500000,
+    date: '2024-01-10',
+    qrCode: 'INC-2024-117'
+  },
+  {
+    id: 'ORD-2024-019',
+    customer: 'Lâm Văn S',
+    product: 'Máy ấp trứng 500',
+    status: 'completed',
+    amount: 18000000,
+    date: '2024-01-06',
+    qrCode: 'INC-2024-118'
+  },
+  {
+    id: 'ORD-2024-020',
+    customer: 'Ông Thị T',
+    product: 'Máy ấp trứng 100',
+    status: 'shipping',
+    amount: 5200000,
+    date: '2024-01-09',
+    qrCode: 'INC-2024-119'
+  },
+  {
+    id: 'ORD-2024-021',
+    customer: 'Võ Văn U',
+    product: 'Máy ấp trứng 50',
+    status: 'deposit',
+    amount: 3500000,
+    date: '2024-01-10',
+    qrCode: 'INC-2024-120'
+  },
+  {
+    id: 'ORD-2024-022',
+    customer: 'Từ Thị V',
+    product: 'Máy ấp trứng 200',
+    status: 'completed',
+    amount: 8500000,
+    date: '2024-01-05',
+    qrCode: 'INC-2024-121'
+  },
+  {
+    id: 'ORD-2024-023',
+    customer: 'Khương Văn W',
+    product: 'Máy ấp trứng 100',
+    status: 'shipping',
+    amount: 5200000,
+    date: '2024-01-10',
+    qrCode: 'INC-2024-122'
+  },
+  {
+    id: 'ORD-2024-024',
+    customer: 'La Thị X',
+    product: 'Máy ấp trứng 500',
+    status: 'deposit',
+    amount: 18000000,
+    date: '2024-01-10',
+    qrCode: 'INC-2024-123'
+  },
+  {
+    id: 'ORD-2024-025',
+    customer: 'Thạch Văn Y',
+    product: 'Máy ấp trứng 1000',
+    status: 'completed',
+    amount: 32000000,
+    date: '2024-01-07',
+    qrCode: 'INC-2024-124'
+  },
 ];
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -76,12 +276,38 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 export function SalesOrders() {
   const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [orders, setOrders] = useState(mockOrders);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
+
+  const handleCreateOrder = (newOrder: Order) => {
+    setOrders([...orders, newOrder]);
+    setActiveTab('orders');
+  };
+
+  const handleUpdateOrder = (updatedOrder: Order) => {
+    setOrders(orders.map(order => order.id === updatedOrder.id ? updatedOrder : order));
+  };
+
+  const openUpdateModal = (order: Order) => {
+    setIsCreateModalOpen(true);
+  };
+
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">Quản Lý Bán Hàng</h2>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <button 
+          onClick={() => setIsCreateModalOpen(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
           <Package size={18} />
           Tạo Đơn Hàng Mới
         </button>
@@ -174,10 +400,13 @@ export function SalesOrders() {
                     <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                       QR Code
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      Thao Tác
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {mockOrders.map((order) => (
+                  {currentOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                         {order.id}
@@ -200,14 +429,36 @@ export function SalesOrders() {
                           {order.qrCode}
                         </button>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button 
+                          onClick={() => openUpdateModal(order)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          Cập Nhật
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <Pagination
+                totalItems={orders.length}
+                itemsPerPage={ordersPerPage}
+                currentPage={currentPage}
+                totalPages={Math.ceil(orders.length / ordersPerPage)}
+                onPageChange={setCurrentPage}
+              />
             </div>
           )}
         </div>
       </div>
+
+      {/* Create Order Modal */}
+      <CreateOrderModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateOrder}
+      />
     </div>
   );
 }

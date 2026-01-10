@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Activity, AlertCircle, CheckCircle, QrCode, Thermometer } from 'lucide-react';
+import { AddDeviceModal } from './add-device-modal';
+import { Pagination } from './pagination';
 
 interface Device {
   id: string;
@@ -58,6 +60,237 @@ const mockDevices: Device[] = [
     heaterStatus: false,
     motorCycle: 'Off'
   },
+  {
+    id: 'INC-2024-005',
+    model: '100 trứng',
+    owner: 'Hoàng Văn E',
+    status: 'running',
+    temperature: 37.4,
+    humidity: 64,
+    fanSpeed: 86,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-006',
+    model: '200 trứng',
+    owner: 'Vũ Thị F',
+    status: 'running',
+    temperature: 37.6,
+    humidity: 66,
+    fanSpeed: 84,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-007',
+    model: '50 trứng',
+    owner: 'Đặng Văn G',
+    status: 'warning',
+    temperature: 38.5,
+    humidity: 57,
+    fanSpeed: 95,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-008',
+    model: '100 trứng',
+    owner: 'Bùi Thị H',
+    status: 'running',
+    temperature: 37.3,
+    humidity: 65,
+    fanSpeed: 87,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-009',
+    model: '500 trứng',
+    owner: 'Ngô Văn I',
+    status: 'running',
+    temperature: 37.8,
+    humidity: 62,
+    fanSpeed: 89,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-010',
+    model: '200 trứng',
+    owner: 'Phan Thị J',
+    status: 'maintenance',
+    temperature: 34.5,
+    humidity: 42,
+    fanSpeed: 0,
+    heaterStatus: false,
+    motorCycle: 'Off'
+  },
+  {
+    id: 'INC-2024-011',
+    model: '100 trứng',
+    owner: 'Trịnh Văn K',
+    status: 'running',
+    temperature: 37.5,
+    humidity: 64,
+    fanSpeed: 85,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-012',
+    model: '50 trứng',
+    owner: 'Lý Thị L',
+    status: 'warning',
+    temperature: 38.0,
+    humidity: 59,
+    fanSpeed: 90,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-013',
+    model: '200 trứng',
+    owner: 'Mai Văn M',
+    status: 'running',
+    temperature: 37.6,
+    humidity: 63,
+    fanSpeed: 86,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-014',
+    model: '100 trứng',
+    owner: 'Dương Thị N',
+    status: 'running',
+    temperature: 37.4,
+    humidity: 65,
+    fanSpeed: 84,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-015',
+    model: '500 trứng',
+    owner: 'Hà Văn O',
+    status: 'maintenance',
+    temperature: 35.2,
+    humidity: 46,
+    fanSpeed: 0,
+    heaterStatus: false,
+    motorCycle: 'Off'
+  },
+  {
+    id: 'INC-2024-016',
+    model: '200 trứng',
+    owner: 'Cao Thị P',
+    status: 'running',
+    temperature: 37.7,
+    humidity: 64,
+    fanSpeed: 87,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-017',
+    model: '100 trứng',
+    owner: 'Tô Văn Q',
+    status: 'warning',
+    temperature: 38.3,
+    humidity: 58,
+    fanSpeed: 93,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-018',
+    model: '50 trứng',
+    owner: 'Đinh Thị R',
+    status: 'running',
+    temperature: 37.5,
+    humidity: 65,
+    fanSpeed: 85,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-019',
+    model: '200 trứng',
+    owner: 'Lâm Văn S',
+    status: 'running',
+    temperature: 37.6,
+    humidity: 63,
+    fanSpeed: 86,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-020',
+    model: '100 trứng',
+    owner: 'Ông Thị T',
+    status: 'running',
+    temperature: 37.4,
+    humidity: 64,
+    fanSpeed: 84,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-021',
+    model: '500 trứng',
+    owner: 'Võ Văn U',
+    status: 'warning',
+    temperature: 38.1,
+    humidity: 60,
+    fanSpeed: 91,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-022',
+    model: '200 trứng',
+    owner: 'Từ Thị V',
+    status: 'running',
+    temperature: 37.5,
+    humidity: 65,
+    fanSpeed: 85,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-023',
+    model: '100 trứng',
+    owner: 'Khương Văn W',
+    status: 'maintenance',
+    temperature: 34.8,
+    humidity: 44,
+    fanSpeed: 0,
+    heaterStatus: false,
+    motorCycle: 'Off'
+  },
+  {
+    id: 'INC-2024-024',
+    model: '50 trứng',
+    owner: 'La Thị X',
+    status: 'running',
+    temperature: 37.6,
+    humidity: 64,
+    fanSpeed: 86,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
+  {
+    id: 'INC-2024-025',
+    model: '200 trứng',
+    owner: 'Thạch Văn Y',
+    status: 'running',
+    temperature: 37.7,
+    humidity: 63,
+    fanSpeed: 87,
+    heaterStatus: true,
+    motorCycle: '2h'
+  },
 ];
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -79,6 +312,18 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 export function DeviceManagement() {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [devices, setDevices] = useState<Device[]>(mockDevices);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const handleAddDevice = (newDevice: Device) => {
+    setDevices([...devices, newDevice]);
+  };
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = devices.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <div className="space-y-6">
@@ -88,7 +333,10 @@ export function DeviceManagement() {
           <button className="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
             Lọc
           </button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             Thêm Thiết Bị
           </button>
         </div>
@@ -119,7 +367,7 @@ export function DeviceManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {mockDevices.map((device) => (
+                {currentItems.map((device) => (
                   <tr
                     key={device.id}
                     className={`hover:bg-slate-50 cursor-pointer transition-colors ${
@@ -149,6 +397,13 @@ export function DeviceManagement() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            totalItems={devices.length}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            totalPages={Math.ceil(devices.length / itemsPerPage)}
+            onPageChange={setCurrentPage}
+          />
         </div>
 
         {/* Device Details */}
@@ -235,6 +490,13 @@ export function DeviceManagement() {
           )}
         </div>
       </div>
+
+      {/* Add Device Modal */}
+      <AddDeviceModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleAddDevice}
+      />
     </div>
   );
 }
