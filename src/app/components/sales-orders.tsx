@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Package, ShoppingBag, Truck, CheckCircle, Clock, QrCode } from 'lucide-react';
 import { CreateOrderModal } from './create-order-modal';
+import { UpdateOrderModal } from './update-order-modal';
+import { UpdateProductModal } from './update-product-modal';
 import { Pagination } from './pagination';
 
 interface Product {
@@ -277,7 +279,12 @@ const StatusBadge = ({ status }: { status: string }) => {
 export function SalesOrders() {
   const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isUpdateProductModalOpen, setIsUpdateProductModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [orders, setOrders] = useState(mockOrders);
+  const [products, setProducts] = useState(mockProducts);
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
 
@@ -288,10 +295,24 @@ export function SalesOrders() {
 
   const handleUpdateOrder = (updatedOrder: Order) => {
     setOrders(orders.map(order => order.id === updatedOrder.id ? updatedOrder : order));
+    setIsUpdateModalOpen(false);
+    setSelectedOrder(null);
+  };
+
+  const handleUpdateProduct = (updatedProduct: Product) => {
+    setProducts(products.map(product => product.id === updatedProduct.id ? updatedProduct : product));
+    setIsUpdateProductModalOpen(false);
+    setSelectedProduct(null);
   };
 
   const openUpdateModal = (order: Order) => {
-    setIsCreateModalOpen(true);
+    setSelectedOrder(order);
+    setIsUpdateModalOpen(true);
+  };
+
+  const openUpdateProductModal = (product: Product) => {
+    setSelectedProduct(product);
+    setIsUpdateProductModalOpen(true);
   };
 
   const indexOfLastOrder = currentPage * ordersPerPage;
@@ -343,7 +364,7 @@ export function SalesOrders() {
         <div className="p-6">
           {activeTab === 'products' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mockProducts.map((product) => (
+              {products.map((product) => (
                 <div
                   key={product.id}
                   className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-5 border border-slate-200 hover:shadow-md transition-shadow"
@@ -371,7 +392,10 @@ export function SalesOrders() {
                     </div>
                   </div>
 
-                  <button className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                  <button 
+                    onClick={() => openUpdateProductModal(product)}
+                    className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
                     Cập Nhật
                   </button>
                 </div>
@@ -458,6 +482,28 @@ export function SalesOrders() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateOrder}
+      />
+
+      {/* Update Order Modal */}
+      <UpdateOrderModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => {
+          setIsUpdateModalOpen(false);
+          setSelectedOrder(null);
+        }}
+        onSubmit={handleUpdateOrder}
+        order={selectedOrder}
+      />
+
+      {/* Update Product Modal */}
+      <UpdateProductModal
+        isOpen={isUpdateProductModalOpen}
+        onClose={() => {
+          setIsUpdateProductModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        onSubmit={handleUpdateProduct}
+        product={selectedProduct}
       />
     </div>
   );
