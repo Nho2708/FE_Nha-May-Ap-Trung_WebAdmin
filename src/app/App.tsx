@@ -1,29 +1,29 @@
-import React, { useState } from 'react';
-import { Sidebar } from './components/sidebar';
-import { AdminDashboard } from './components/admin-dashboard';
-import { DeviceManagement } from './components/device-management';
-import { SalesOrders } from './components/sales-orders';
-import { TemplateManagement } from './components/template-management';
-import { MaintenanceTickets } from './components/maintenance-tickets';
-import { AIChat } from './components/ai-chat';
+import React, { useState } from "react";
+import { Sidebar } from "./components/layout/sidebar";
+import { AdminDashboard } from "./components/dashboard/admin-dashboard";
+import { DeviceManagement } from "./components/devices/device-management";
+import { SalesOrders } from "./components/orders/sales-orders";
+import { TemplateManagement } from "./components/templates/template-management";
+import { MaintenanceTickets } from "./components/maintenance/maintenance-tickets";
+import { AIChat } from "./components/shared/ai-chat";
 
-type PageType = 'dashboard' | 'devices' | 'sales' | 'templates' | 'maintenance';
+type PageType = "dashboard" | "devices" | "sales" | "templates" | "maintenance";
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
+  const [currentPage, setCurrentPage] = useState<PageType>("dashboard");
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
+      case "dashboard":
         return <AdminDashboard />;
-      case 'devices':
+      case "devices":
         return <DeviceManagement />;
-      case 'sales':
+      case "sales":
         return <SalesOrders />;
-      case 'templates':
+      case "templates":
         return <TemplateManagement />;
-      case 'maintenance':
+      case "maintenance":
         return <MaintenanceTickets />;
       default:
         return <AdminDashboard />;
@@ -33,7 +33,7 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-slate-200 px-8 py-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -50,9 +50,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-8">
-          {renderPage()}
-        </main>
+        <main className="flex-1 overflow-auto p-8">{renderPage()}</main>
       </div>
 
       {isChatOpen && <AIChat onClose={() => setIsChatOpen(false)} />}

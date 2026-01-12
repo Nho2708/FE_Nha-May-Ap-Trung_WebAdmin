@@ -1,31 +1,31 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { Sidebar } from '@/src/app/components/sidebar';
-import { AdminDashboard } from '@/src/app/components/admin-dashboard';
-import { DeviceManagement } from '@/src/app/components/device-management';
-import { SalesOrders } from '@/src/app/components/sales-orders';
-import { TemplateManagement } from '@/src/app/components/template-management';
-import { MaintenanceTickets } from '@/src/app/components/maintenance-tickets';
-import { AIChat } from '@/src/app/components/ai-chat';
+import React, { useState } from "react";
+import { Sidebar } from "@/src/app/components/layout/sidebar";
+import { AdminDashboard } from "@/src/app/components/dashboard/admin-dashboard";
+import { DeviceManagement } from "@/src/app/components/devices/device-management";
+import { SalesOrders } from "@/src/app/components/orders/sales-orders";
+import { TemplateManagement } from "@/src/app/components/templates/template-management";
+import { MaintenanceTickets } from "@/src/app/components/maintenance/maintenance-tickets";
+import { AIChat } from "@/src/app/components/shared/ai-chat";
 
-type PageType = 'dashboard' | 'devices' | 'sales' | 'templates' | 'maintenance';
+type PageType = "dashboard" | "devices" | "sales" | "templates" | "maintenance";
 
 export default function Home() {
-  const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
+  const [currentPage, setCurrentPage] = useState<PageType>("dashboard");
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
+      case "dashboard":
         return <AdminDashboard />;
-      case 'devices':
+      case "devices":
         return <DeviceManagement />;
-      case 'sales':
+      case "sales":
         return <SalesOrders />;
-      case 'templates':
+      case "templates":
         return <TemplateManagement />;
-      case 'maintenance':
+      case "maintenance":
         return <MaintenanceTickets />;
       default:
         return <AdminDashboard />;
@@ -35,7 +35,7 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-slate-200 px-8 py-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -52,9 +52,7 @@ export default function Home() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-8">
-          {renderPage()}
-        </main>
+        <main className="flex-1 overflow-auto p-8">{renderPage()}</main>
       </div>
 
       {isChatOpen && <AIChat onClose={() => setIsChatOpen(false)} />}

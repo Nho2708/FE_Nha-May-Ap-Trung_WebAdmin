@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
-import { Activity, AlertCircle, CheckCircle, QrCode, Thermometer } from 'lucide-react';
-import { AddDeviceModal } from './add-device-modal';
-import { Pagination } from './pagination';
+import React, { useState } from "react";
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  QrCode,
+  Thermometer,
+} from "lucide-react";
+import { AddDeviceModal } from "./add-device-modal";
+import { Pagination } from "../shared/pagination";
 
 interface Device {
   id: string;
   model: string;
   owner: string;
-  status: 'running' | 'warning' | 'maintenance';
+  status: "running" | "warning" | "maintenance";
   temperature: number;
   humidity: number;
   fanSpeed: number;
@@ -17,293 +23,307 @@ interface Device {
 
 const mockDevices: Device[] = [
   {
-    id: 'INC-2024-001',
-    model: '100 trứng',
-    owner: 'Nguyễn Văn A',
-    status: 'running',
+    id: "INC-2024-001",
+    model: "100 trứng",
+    owner: "Nguyễn Văn A",
+    status: "running",
     temperature: 37.5,
     humidity: 65,
     fanSpeed: 85,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-002',
-    model: '200 trứng',
-    owner: 'Trần Thị B',
-    status: 'warning',
+    id: "INC-2024-002",
+    model: "200 trứng",
+    owner: "Trần Thị B",
+    status: "warning",
     temperature: 38.2,
     humidity: 58,
     fanSpeed: 92,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-003',
-    model: '50 trứng',
-    owner: 'Lê Văn C',
-    status: 'running',
+    id: "INC-2024-003",
+    model: "50 trứng",
+    owner: "Lê Văn C",
+    status: "running",
     temperature: 37.7,
     humidity: 63,
     fanSpeed: 88,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-004',
-    model: '500 trứng',
-    owner: 'Phạm Thị D',
-    status: 'maintenance',
+    id: "INC-2024-004",
+    model: "500 trứng",
+    owner: "Phạm Thị D",
+    status: "maintenance",
     temperature: 35.0,
     humidity: 45,
     fanSpeed: 0,
     heaterStatus: false,
-    motorCycle: 'Off'
+    motorCycle: "Off",
   },
   {
-    id: 'INC-2024-005',
-    model: '100 trứng',
-    owner: 'Hoàng Văn E',
-    status: 'running',
+    id: "INC-2024-005",
+    model: "100 trứng",
+    owner: "Hoàng Văn E",
+    status: "running",
     temperature: 37.4,
     humidity: 64,
     fanSpeed: 86,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-006',
-    model: '200 trứng',
-    owner: 'Vũ Thị F',
-    status: 'running',
+    id: "INC-2024-006",
+    model: "200 trứng",
+    owner: "Vũ Thị F",
+    status: "running",
     temperature: 37.6,
     humidity: 66,
     fanSpeed: 84,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-007',
-    model: '50 trứng',
-    owner: 'Đặng Văn G',
-    status: 'warning',
+    id: "INC-2024-007",
+    model: "50 trứng",
+    owner: "Đặng Văn G",
+    status: "warning",
     temperature: 38.5,
     humidity: 57,
     fanSpeed: 95,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-008',
-    model: '100 trứng',
-    owner: 'Bùi Thị H',
-    status: 'running',
+    id: "INC-2024-008",
+    model: "100 trứng",
+    owner: "Bùi Thị H",
+    status: "running",
     temperature: 37.3,
     humidity: 65,
     fanSpeed: 87,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-009',
-    model: '500 trứng',
-    owner: 'Ngô Văn I',
-    status: 'running',
+    id: "INC-2024-009",
+    model: "500 trứng",
+    owner: "Ngô Văn I",
+    status: "running",
     temperature: 37.8,
     humidity: 62,
     fanSpeed: 89,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-010',
-    model: '200 trứng',
-    owner: 'Phan Thị J',
-    status: 'maintenance',
+    id: "INC-2024-010",
+    model: "200 trứng",
+    owner: "Phan Thị J",
+    status: "maintenance",
     temperature: 34.5,
     humidity: 42,
     fanSpeed: 0,
     heaterStatus: false,
-    motorCycle: 'Off'
+    motorCycle: "Off",
   },
   {
-    id: 'INC-2024-011',
-    model: '100 trứng',
-    owner: 'Trịnh Văn K',
-    status: 'running',
+    id: "INC-2024-011",
+    model: "100 trứng",
+    owner: "Trịnh Văn K",
+    status: "running",
     temperature: 37.5,
     humidity: 64,
     fanSpeed: 85,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-012',
-    model: '50 trứng',
-    owner: 'Lý Thị L',
-    status: 'warning',
+    id: "INC-2024-012",
+    model: "50 trứng",
+    owner: "Lý Thị L",
+    status: "warning",
     temperature: 38.0,
     humidity: 59,
     fanSpeed: 90,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-013',
-    model: '200 trứng',
-    owner: 'Mai Văn M',
-    status: 'running',
+    id: "INC-2024-013",
+    model: "200 trứng",
+    owner: "Mai Văn M",
+    status: "running",
     temperature: 37.6,
     humidity: 63,
     fanSpeed: 86,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-014',
-    model: '100 trứng',
-    owner: 'Dương Thị N',
-    status: 'running',
+    id: "INC-2024-014",
+    model: "100 trứng",
+    owner: "Dương Thị N",
+    status: "running",
     temperature: 37.4,
     humidity: 65,
     fanSpeed: 84,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-015',
-    model: '500 trứng',
-    owner: 'Hà Văn O',
-    status: 'maintenance',
+    id: "INC-2024-015",
+    model: "500 trứng",
+    owner: "Hà Văn O",
+    status: "maintenance",
     temperature: 35.2,
     humidity: 46,
     fanSpeed: 0,
     heaterStatus: false,
-    motorCycle: 'Off'
+    motorCycle: "Off",
   },
   {
-    id: 'INC-2024-016',
-    model: '200 trứng',
-    owner: 'Cao Thị P',
-    status: 'running',
+    id: "INC-2024-016",
+    model: "200 trứng",
+    owner: "Cao Thị P",
+    status: "running",
     temperature: 37.7,
     humidity: 64,
     fanSpeed: 87,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-017',
-    model: '100 trứng',
-    owner: 'Tô Văn Q',
-    status: 'warning',
+    id: "INC-2024-017",
+    model: "100 trứng",
+    owner: "Tô Văn Q",
+    status: "warning",
     temperature: 38.3,
     humidity: 58,
     fanSpeed: 93,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-018',
-    model: '50 trứng',
-    owner: 'Đinh Thị R',
-    status: 'running',
+    id: "INC-2024-018",
+    model: "50 trứng",
+    owner: "Đinh Thị R",
+    status: "running",
     temperature: 37.5,
     humidity: 65,
     fanSpeed: 85,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-019',
-    model: '200 trứng',
-    owner: 'Lâm Văn S',
-    status: 'running',
+    id: "INC-2024-019",
+    model: "200 trứng",
+    owner: "Lâm Văn S",
+    status: "running",
     temperature: 37.6,
     humidity: 63,
     fanSpeed: 86,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-020',
-    model: '100 trứng',
-    owner: 'Ông Thị T',
-    status: 'running',
+    id: "INC-2024-020",
+    model: "100 trứng",
+    owner: "Ông Thị T",
+    status: "running",
     temperature: 37.4,
     humidity: 64,
     fanSpeed: 84,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-021',
-    model: '500 trứng',
-    owner: 'Võ Văn U',
-    status: 'warning',
+    id: "INC-2024-021",
+    model: "500 trứng",
+    owner: "Võ Văn U",
+    status: "warning",
     temperature: 38.1,
     humidity: 60,
     fanSpeed: 91,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-022',
-    model: '200 trứng',
-    owner: 'Từ Thị V',
-    status: 'running',
+    id: "INC-2024-022",
+    model: "200 trứng",
+    owner: "Từ Thị V",
+    status: "running",
     temperature: 37.5,
     humidity: 65,
     fanSpeed: 85,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-023',
-    model: '100 trứng',
-    owner: 'Khương Văn W',
-    status: 'maintenance',
+    id: "INC-2024-023",
+    model: "100 trứng",
+    owner: "Khương Văn W",
+    status: "maintenance",
     temperature: 34.8,
     humidity: 44,
     fanSpeed: 0,
     heaterStatus: false,
-    motorCycle: 'Off'
+    motorCycle: "Off",
   },
   {
-    id: 'INC-2024-024',
-    model: '50 trứng',
-    owner: 'La Thị X',
-    status: 'running',
+    id: "INC-2024-024",
+    model: "50 trứng",
+    owner: "La Thị X",
+    status: "running",
     temperature: 37.6,
     humidity: 64,
     fanSpeed: 86,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
   {
-    id: 'INC-2024-025',
-    model: '200 trứng',
-    owner: 'Thạch Văn Y',
-    status: 'running',
+    id: "INC-2024-025",
+    model: "200 trứng",
+    owner: "Thạch Văn Y",
+    status: "running",
     temperature: 37.7,
     humidity: 63,
     fanSpeed: 87,
     heaterStatus: true,
-    motorCycle: '2h'
+    motorCycle: "2h",
   },
 ];
 
 const StatusBadge = ({ status }: { status: string }) => {
   const config = {
-    running: { label: 'Hoạt động', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-    warning: { label: 'Cảnh báo', color: 'bg-yellow-100 text-yellow-800', icon: AlertCircle },
-    maintenance: { label: 'Bảo trì', color: 'bg-red-100 text-red-800', icon: Activity },
+    running: {
+      label: "Hoạt động",
+      color: "bg-green-100 text-green-800",
+      icon: CheckCircle,
+    },
+    warning: {
+      label: "Cảnh báo",
+      color: "bg-yellow-100 text-yellow-800",
+      icon: AlertCircle,
+    },
+    maintenance: {
+      label: "Bảo trì",
+      color: "bg-red-100 text-red-800",
+      icon: Activity,
+    },
   };
 
   const { label, color, icon: Icon } = config[status as keyof typeof config];
 
   return (
-    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${color}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${color}`}
+    >
       <Icon size={12} />
       {label}
     </span>
@@ -333,7 +353,7 @@ export function DeviceManagement() {
           <button className="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
             Lọc
           </button>
-          <button 
+          <button
             onClick={() => setIsAddModalOpen(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
@@ -371,7 +391,7 @@ export function DeviceManagement() {
                   <tr
                     key={device.id}
                     className={`hover:bg-slate-50 cursor-pointer transition-colors ${
-                      selectedDevice?.id === device.id ? 'bg-blue-50' : ''
+                      selectedDevice?.id === device.id ? "bg-blue-50" : ""
                     }`}
                     onClick={() => setSelectedDevice(device)}
                   >
@@ -429,9 +449,11 @@ export function DeviceManagement() {
                     </span>
                   </div>
                   <div className="w-full bg-white rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${(selectedDevice.temperature / 40) * 100}%` }}
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{
+                        width: `${(selectedDevice.temperature / 40) * 100}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -444,8 +466,8 @@ export function DeviceManagement() {
                     </span>
                   </div>
                   <div className="w-full bg-white rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full" 
+                    <div
+                      className="bg-green-600 h-2 rounded-full"
                       style={{ width: `${selectedDevice.humidity}%` }}
                     />
                   </div>
@@ -461,13 +483,15 @@ export function DeviceManagement() {
                   <div className="bg-slate-50 rounded-lg p-3">
                     <p className="text-xs text-slate-600 mb-1">Máy gia nhiệt</p>
                     <p className="text-lg font-semibold text-slate-800">
-                      {selectedDevice.heaterStatus ? 'ON' : 'OFF'}
+                      {selectedDevice.heaterStatus ? "ON" : "OFF"}
                     </p>
                   </div>
                 </div>
 
                 <div className="bg-slate-50 rounded-lg p-3">
-                  <p className="text-xs text-slate-600 mb-1">Chu kỳ đảo trứng</p>
+                  <p className="text-xs text-slate-600 mb-1">
+                    Chu kỳ đảo trứng
+                  </p>
                   <p className="text-lg font-semibold text-slate-800">
                     {selectedDevice.motorCycle}
                   </p>

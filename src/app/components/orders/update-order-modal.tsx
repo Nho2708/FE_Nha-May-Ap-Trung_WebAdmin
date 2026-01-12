@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { X, Package, Truck, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { X, Package, Truck, CheckCircle } from "lucide-react";
 
 interface Order {
   id: string;
   customer: string;
   product: string;
-  status: string;
+  status: "deposit" | "shipping" | "completed";
+  // status: string;
   amount: number;
   date: string;
   qrCode: string;
@@ -23,27 +24,63 @@ interface UpdateOrderModalProps {
 }
 
 const statusOptions = [
-  { value: 'pending', label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-800', icon: Package },
-  { value: 'deposit', label: 'Đã đặt cọc', color: 'bg-blue-100 text-blue-800', icon: Package },
-  { value: 'shipping', label: 'Đang giao', color: 'bg-purple-100 text-purple-800', icon: Truck },
-  { value: 'completed', label: 'Hoàn thành', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  {
+    value: "pending",
+    label: "Chờ xác nhận",
+    color: "bg-yellow-100 text-yellow-800",
+    icon: Package,
+  },
+  {
+    value: "deposit",
+    label: "Đã đặt cọc",
+    color: "bg-blue-100 text-blue-800",
+    icon: Package,
+  },
+  {
+    value: "shipping",
+    label: "Đang giao",
+    color: "bg-purple-100 text-purple-800",
+    icon: Truck,
+  },
+  {
+    value: "completed",
+    label: "Hoàn thành",
+    color: "bg-green-100 text-green-800",
+    icon: CheckCircle,
+  },
 ];
 
-export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrderModalProps) {
-  const [formData, setFormData] = useState({
-    status: '',
-    notes: '',
-    phone: '',
-    address: '',
+export function UpdateOrderModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  order,
+}: UpdateOrderModalProps) {
+  // const [formData, setFormData] = useState({
+  //   status: '',
+  //   notes: '',
+  //   phone: '',
+  //   address: '',
+  // });
+  const [formData, setFormData] = useState<{
+    status: "deposit" | "shipping" | "completed";
+    notes: string;
+    phone: string;
+    address: string;
+  }>({
+    status: "deposit", // ✅ Default value phải là một trong 3 giá trị hợp lệ
+    notes: "",
+    phone: "",
+    address: "",
   });
 
   useEffect(() => {
     if (order) {
       setFormData({
         status: order.status,
-        notes: order.notes || '',
-        phone: order.phone || '',
-        address: order.address || '',
+        notes: order.notes || "",
+        phone: order.phone || "",
+        address: order.address || "",
       });
     }
   }, [order]);
@@ -59,10 +96,14 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
     onClose();
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -91,7 +132,9 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
         <form onSubmit={handleSubmit} className="p-5 space-y-5">
           {/* Order Info */}
           <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-800 mb-3">Thông Tin Đơn Hàng</h3>
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">
+              Thông Tin Đơn Hàng
+            </h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-slate-600">Khách hàng:</span>
@@ -104,7 +147,7 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
               <div>
                 <span className="text-slate-600">Tổng tiền:</span>
                 <p className="font-medium text-green-600">
-                  {order.amount.toLocaleString('vi-VN')} ₫
+                  {order.amount.toLocaleString("vi-VN")} ₫
                 </p>
               </div>
               <div>
@@ -127,8 +170,8 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
                     key={option.value}
                     className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
                       formData.status === option.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-slate-200 hover:border-blue-300 hover:bg-slate-50"
                     }`}
                   >
                     <input
@@ -139,13 +182,21 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
                       onChange={handleChange}
                       className="sr-only"
                     />
-                    <Icon 
-                      size={18} 
-                      className={formData.status === option.value ? 'text-blue-600' : 'text-slate-400'} 
+                    <Icon
+                      size={18}
+                      className={
+                        formData.status === option.value
+                          ? "text-blue-600"
+                          : "text-slate-400"
+                      }
                     />
-                    <span className={`ml-2 text-sm font-medium ${
-                      formData.status === option.value ? 'text-blue-800' : 'text-slate-700'
-                    }`}>
+                    <span
+                      className={`ml-2 text-sm font-medium ${
+                        formData.status === option.value
+                          ? "text-blue-800"
+                          : "text-slate-700"
+                      }`}
+                    >
                       {option.label}
                     </span>
                   </label>

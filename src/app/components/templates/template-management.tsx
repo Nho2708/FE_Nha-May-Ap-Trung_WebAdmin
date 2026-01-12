@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
-import { FileText, Thermometer, Droplet, Clock, TrendingUp, Users } from 'lucide-react';
-import { CreateTemplateModal } from './create-template-modal';
-import { UpdateTemplateModal } from './update-template-modal';
+import React, { useState } from "react";
+import {
+  FileText,
+  Thermometer,
+  Droplet,
+  Clock,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import { CreateTemplateModal } from "./create-template-modal";
+import { UpdateTemplateModal } from "./update-template-modal";
 
 interface Template {
   id: string;
@@ -18,71 +25,75 @@ interface Template {
 
 const mockTemplates: Template[] = [
   {
-    id: 'T001',
-    name: 'Trứng Gà',
-    icon: '🐔',
-    temperature: '37.5-38°C',
-    humidity: '55-65%',
-    duration: '21 ngày',
-    turnCycle: '2 giờ',
+    id: "T001",
+    name: "Trứng Gà",
+    icon: "🐔",
+    temperature: "37.5-38°C",
+    humidity: "55-65%",
+    duration: "21 ngày",
+    turnCycle: "2 giờ",
     users: 156,
     sessions: 324,
-    successRate: 92
+    successRate: 92,
   },
   {
-    id: 'T002',
-    name: 'Trứng Vịt',
-    icon: '🦆',
-    temperature: '37-37.5°C',
-    humidity: '58-62%',
-    duration: '28 ngày',
-    turnCycle: '2 giờ',
+    id: "T002",
+    name: "Trứng Vịt",
+    icon: "🦆",
+    temperature: "37-37.5°C",
+    humidity: "58-62%",
+    duration: "28 ngày",
+    turnCycle: "2 giờ",
     users: 89,
     sessions: 178,
-    successRate: 88
+    successRate: 88,
   },
   {
-    id: 'T003',
-    name: 'Trứng Ngỗng',
-    icon: '🦢',
-    temperature: '37.5-38°C',
-    humidity: '60-65%',
-    duration: '28-30 ngày',
-    turnCycle: '3 giờ',
+    id: "T003",
+    name: "Trứng Ngỗng",
+    icon: "🦢",
+    temperature: "37.5-38°C",
+    humidity: "60-65%",
+    duration: "28-30 ngày",
+    turnCycle: "3 giờ",
     users: 42,
     sessions: 95,
-    successRate: 85
+    successRate: 85,
   },
   {
-    id: 'T004',
-    name: 'Trứng Chim',
-    icon: '🐦',
-    temperature: '37-37.5°C',
-    humidity: '50-55%',
-    duration: '14-18 ngày',
-    turnCycle: '1.5 giờ',
+    id: "T004",
+    name: "Trứng Chim",
+    icon: "🐦",
+    temperature: "37-37.5°C",
+    humidity: "50-55%",
+    duration: "14-18 ngày",
+    turnCycle: "1.5 giờ",
     users: 28,
     sessions: 67,
-    successRate: 78
+    successRate: 78,
   },
   {
-    id: 'T005',
-    name: 'Trứng Đà Điểu',
-    icon: '🦤',
-    temperature: '36-36.5°C',
-    humidity: '25-30%',
-    duration: '42-45 ngày',
-    turnCycle: '4 giờ',
+    id: "T005",
+    name: "Trứng Đà Điểu",
+    icon: "🦤",
+    temperature: "36-36.5°C",
+    humidity: "25-30%",
+    duration: "42-45 ngày",
+    turnCycle: "4 giờ",
     users: 15,
     sessions: 32,
-    successRate: 80
+    successRate: 80,
   },
 ];
 
 export function TemplateManagement() {
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [isCreateTemplateModalOpen, setIsCreateTemplateModalOpen] = useState(false);
-  const [isUpdateTemplateModalOpen, setIsUpdateTemplateModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null
+  );
+  const [isCreateTemplateModalOpen, setIsCreateTemplateModalOpen] =
+    useState(false);
+  const [isUpdateTemplateModalOpen, setIsUpdateTemplateModalOpen] =
+    useState(false);
   const [templates, setTemplates] = useState<Template[]>(mockTemplates);
 
   const handleCreateTemplate = (newTemplate: Template) => {
@@ -90,14 +101,20 @@ export function TemplateManagement() {
   };
 
   const handleUpdateTemplate = (updatedTemplate: Template) => {
-    setTemplates(templates.map(template => template.id === updatedTemplate.id ? updatedTemplate : template));
+    setTemplates(
+      templates.map((template) =>
+        template.id === updatedTemplate.id ? updatedTemplate : template
+      )
+    );
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-800">Quản Lý Template Ấp Trứng</h2>
-        <button 
+        <h2 className="text-xl font-bold text-slate-800">
+          Quản Lý Template Ấp Trứng
+        </h2>
+        <button
           onClick={() => setIsCreateTemplateModalOpen(true)}
           className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
@@ -115,8 +132,8 @@ export function TemplateManagement() {
               onClick={() => setSelectedTemplate(template)}
               className={`bg-white rounded-lg shadow-sm border-2 transition-all cursor-pointer hover:shadow ${
                 selectedTemplate?.id === template.id
-                  ? 'border-blue-500 shadow'
-                  : 'border-slate-200'
+                  ? "border-blue-500 shadow"
+                  : "border-slate-200"
               }`}
             >
               <div className="p-4">
@@ -133,7 +150,9 @@ export function TemplateManagement() {
                   <div className="text-right">
                     <div className="flex items-center gap-1 text-green-600 mb-0.5">
                       <TrendingUp size={14} />
-                      <span className="text-base font-bold">{template.successRate}%</span>
+                      <span className="text-base font-bold">
+                        {template.successRate}%
+                      </span>
                     </div>
                     <p className="text-xs text-slate-600">Thành công</p>
                   </div>
@@ -201,11 +220,15 @@ export function TemplateManagement() {
           {selectedTemplate ? (
             <div className="space-y-4">
               <div className="text-center pb-3 border-b border-slate-200">
-                <span className="text-5xl mb-2 block">{selectedTemplate.icon}</span>
+                <span className="text-5xl mb-2 block">
+                  {selectedTemplate.icon}
+                </span>
                 <h3 className="text-base font-semibold text-slate-800">
                   {selectedTemplate.name}
                 </h3>
-                <p className="text-xs text-slate-600 mt-0.5">ID: {selectedTemplate.id}</p>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  ID: {selectedTemplate.id}
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -247,7 +270,9 @@ export function TemplateManagement() {
                   </h4>
                   <div className="space-y-2">
                     <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-2.5">
-                      <p className="text-xs text-slate-700 mb-0.5">Người dùng</p>
+                      <p className="text-xs text-slate-700 mb-0.5">
+                        Người dùng
+                      </p>
                       <p className="text-xl font-bold text-blue-600">
                         {selectedTemplate.users}
                       </p>
@@ -259,7 +284,9 @@ export function TemplateManagement() {
                       </p>
                     </div>
                     <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-2.5">
-                      <p className="text-xs text-slate-700 mb-0.5">Tỉ lệ thành công</p>
+                      <p className="text-xs text-slate-700 mb-0.5">
+                        Tỉ lệ thành công
+                      </p>
                       <p className="text-xl font-bold text-green-600">
                         {selectedTemplate.successRate}%
                       </p>
@@ -285,7 +312,9 @@ export function TemplateManagement() {
           ) : (
             <div className="text-center py-8">
               <FileText size={32} className="mx-auto text-slate-300 mb-2" />
-              <p className="text-sm text-slate-500">Chọn template để xem chi tiết</p>
+              <p className="text-sm text-slate-500">
+                Chọn template để xem chi tiết
+              </p>
             </div>
           )}
         </div>
