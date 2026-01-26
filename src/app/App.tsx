@@ -5,9 +5,10 @@ import { DeviceManagement } from './components/device-management';
 import { SalesOrders } from './components/sales-orders';
 import { TemplateManagement } from './components/template-management';
 import { MaintenanceTickets } from './components/maintenance-tickets';
+import { UserStaffManagement } from './components/user-staff-management';
 import { AIChat } from './components/ai-chat';
 
-type PageType = 'dashboard' | 'devices' | 'sales' | 'templates' | 'maintenance';
+type PageType = 'dashboard' | 'devices' | 'sales' | 'templates' | 'maintenance' | 'users';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
@@ -25,6 +26,8 @@ export default function App() {
         return <TemplateManagement />;
       case 'maintenance':
         return <MaintenanceTickets />;
+      case 'users':
+        return <UserStaffManagement />;
       default:
         return <AdminDashboard />;
     }
