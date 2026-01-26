@@ -6,9 +6,10 @@ import { SalesOrders } from './components/sales-orders';
 import { TemplateManagement } from './components/template-management';
 import { MaintenanceTickets } from './components/maintenance-tickets';
 import { UserStaffManagement } from './components/user-staff-management';
+import { WarrantyManagement } from './components/warranty-management';
 import { AIChat } from './components/ai-chat';
 
-type PageType = 'dashboard' | 'devices' | 'sales' | 'templates' | 'maintenance' | 'users';
+type PageType = 'dashboard' | 'devices' | 'sales' | 'templates' | 'maintenance' | 'users' | 'warranty';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
@@ -28,6 +29,8 @@ export default function App() {
         return <MaintenanceTickets />;
       case 'users':
         return <UserStaffManagement />;
+      case 'warranty':
+        return <WarrantyManagement />;
       default:
         return <AdminDashboard />;
     }
