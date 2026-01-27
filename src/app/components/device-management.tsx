@@ -6,7 +6,7 @@ import { Pagination } from './pagination';
 interface Device {
   id: string;
   model: string;
-  owner: string;
+  quantity: number;
   status: 'running' | 'warning' | 'maintenance';
   temperature: number;
   humidity: number;
@@ -19,7 +19,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-001',
     model: '100 trứng',
-    owner: 'Nguyễn Văn A',
+    quantity: 5,
     status: 'running',
     temperature: 37.5,
     humidity: 65,
@@ -30,7 +30,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-002',
     model: '200 trứng',
-    owner: 'Trần Thị B',
+    quantity: 3,
     status: 'warning',
     temperature: 38.2,
     humidity: 58,
@@ -41,7 +41,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-003',
     model: '50 trứng',
-    owner: 'Lê Văn C',
+    quantity: 8,
     status: 'running',
     temperature: 37.7,
     humidity: 63,
@@ -52,7 +52,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-004',
     model: '500 trứng',
-    owner: 'Phạm Thị D',
+    quantity: 1,
     status: 'maintenance',
     temperature: 35.0,
     humidity: 45,
@@ -63,7 +63,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-005',
     model: '100 trứng',
-    owner: 'Hoàng Văn E',
+    quantity: 6,
     status: 'running',
     temperature: 37.4,
     humidity: 64,
@@ -74,7 +74,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-006',
     model: '200 trứng',
-    owner: 'Vũ Thị F',
+    quantity: 4,
     status: 'running',
     temperature: 37.6,
     humidity: 66,
@@ -85,7 +85,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-007',
     model: '50 trứng',
-    owner: 'Đặng Văn G',
+    quantity: 7,
     status: 'warning',
     temperature: 38.5,
     humidity: 57,
@@ -96,7 +96,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-008',
     model: '100 trứng',
-    owner: 'Bùi Thị H',
+    quantity: 5,
     status: 'running',
     temperature: 37.3,
     humidity: 65,
@@ -107,7 +107,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-009',
     model: '500 trứng',
-    owner: 'Ngô Văn I',
+    quantity: 2,
     status: 'running',
     temperature: 37.8,
     humidity: 62,
@@ -118,7 +118,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-010',
     model: '200 trứng',
-    owner: 'Phan Thị J',
+    quantity: 3,
     status: 'maintenance',
     temperature: 34.5,
     humidity: 42,
@@ -129,7 +129,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-011',
     model: '100 trứng',
-    owner: 'Trịnh Văn K',
+    quantity: 4,
     status: 'running',
     temperature: 37.5,
     humidity: 64,
@@ -140,7 +140,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-012',
     model: '50 trứng',
-    owner: 'Lý Thị L',
+    quantity: 6,
     status: 'warning',
     temperature: 38.0,
     humidity: 59,
@@ -151,7 +151,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-013',
     model: '200 trứng',
-    owner: 'Mai Văn M',
+    quantity: 5,
     status: 'running',
     temperature: 37.6,
     humidity: 63,
@@ -162,7 +162,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-014',
     model: '100 trứng',
-    owner: 'Dương Thị N',
+    quantity: 7,
     status: 'running',
     temperature: 37.4,
     humidity: 65,
@@ -173,7 +173,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-015',
     model: '500 trứng',
-    owner: 'Hà Văn O',
+    quantity: 1,
     status: 'maintenance',
     temperature: 35.2,
     humidity: 46,
@@ -184,7 +184,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-016',
     model: '200 trứng',
-    owner: 'Cao Thị P',
+    quantity: 3,
     status: 'running',
     temperature: 37.7,
     humidity: 64,
@@ -195,7 +195,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-017',
     model: '100 trứng',
-    owner: 'Tô Văn Q',
+    quantity: 5,
     status: 'warning',
     temperature: 38.3,
     humidity: 58,
@@ -206,7 +206,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-018',
     model: '50 trứng',
-    owner: 'Đinh Thị R',
+    quantity: 9,
     status: 'running',
     temperature: 37.5,
     humidity: 65,
@@ -217,7 +217,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-019',
     model: '200 trứng',
-    owner: 'Lâm Văn S',
+    quantity: 4,
     status: 'running',
     temperature: 37.6,
     humidity: 63,
@@ -228,7 +228,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-020',
     model: '100 trứng',
-    owner: 'Ông Thị T',
+    quantity: 6,
     status: 'running',
     temperature: 37.4,
     humidity: 64,
@@ -239,7 +239,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-021',
     model: '500 trứng',
-    owner: 'Võ Văn U',
+    quantity: 2,
     status: 'warning',
     temperature: 38.1,
     humidity: 60,
@@ -250,7 +250,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-022',
     model: '200 trứng',
-    owner: 'Từ Thị V',
+    quantity: 5,
     status: 'running',
     temperature: 37.5,
     humidity: 65,
@@ -261,7 +261,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-023',
     model: '100 trứng',
-    owner: 'Khương Văn W',
+    quantity: 3,
     status: 'maintenance',
     temperature: 34.8,
     humidity: 44,
@@ -272,7 +272,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-024',
     model: '50 trứng',
-    owner: 'La Thị X',
+    quantity: 8,
     status: 'running',
     temperature: 37.6,
     humidity: 64,
@@ -283,7 +283,7 @@ const mockDevices: Device[] = [
   {
     id: 'INC-2024-025',
     model: '200 trứng',
-    owner: 'Thạch Văn Y',
+    quantity: 4,
     status: 'running',
     temperature: 37.7,
     humidity: 63,
@@ -328,7 +328,7 @@ export function DeviceManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Quản Lý Thiết Bị</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Quản Lý Thiết Bị Kho</h2>
         <div className="flex gap-3">
           <button className="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
             Lọc
@@ -356,7 +356,7 @@ export function DeviceManagement() {
                     Dòng Máy
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Chủ Sở Hữu
+                    Tồn Kho
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Trạng Thái
@@ -382,7 +382,7 @@ export function DeviceManagement() {
                       {device.model}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {device.owner}
+                      {device.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={device.status} />
