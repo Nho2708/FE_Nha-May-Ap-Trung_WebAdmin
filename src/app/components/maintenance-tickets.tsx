@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wrench, AlertCircle, Clock, CheckCircle, Image as ImageIcon } from 'lucide-react';
+import { Wrench, AlertCircle, Clock, CheckCircle, Image as ImageIcon, Plus, Send, MapPin, X } from 'lucide-react';
 import { Pagination } from './pagination';
 
 interface Ticket {
