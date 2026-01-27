@@ -5,10 +5,11 @@ import {
   ShoppingCart, 
   FileText, 
   Wrench,
-  Users
+  Users,
+  Shield
 } from 'lucide-react';
 
-type PageType = 'dashboard' | 'devices' | 'sales' | 'templates' | 'maintenance' | 'users';
+type PageType = 'dashboard' | 'devices' | 'sales' | 'templates' | 'maintenance' | 'users' | 'warranty';
 
 interface SidebarProps {
   currentPage: PageType;
@@ -21,6 +22,7 @@ const menuItems = [
   { id: 'sales' as PageType, label: 'Đơn Hàng', icon: ShoppingCart },
   { id: 'templates' as PageType, label: 'Template Ấp', icon: FileText },
   { id: 'maintenance' as PageType, label: 'Bảo Trì', icon: Wrench },
+  { id: 'warranty' as PageType, label: 'Bảo Hành', icon: Shield },
   { id: 'users' as PageType, label: 'Quản Lý User', icon: Users },
 ];
 
