@@ -11,10 +11,7 @@ export function AddDeviceModal({ isOpen, onClose, onSubmit }: AddDeviceModalProp
   const [formData, setFormData] = useState({
     deviceId: '',
     model: '50',
-    owner: '',
-    email: '',
-    phone: '',
-    address: '',
+    quantity: 1,
     serialNumber: '',
     purchaseDate: '',
   });
@@ -135,68 +132,24 @@ export function AddDeviceModal({ isOpen, onClose, onSubmit }: AddDeviceModalProp
             </div>
           </div>
 
-          {/* Owner Information */}
+          {/* Quantity Information */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-200 pb-1.5">
-              Thông Tin Chủ Sở Hữu
+              Thông Tin Tồn Kho
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Họ Tên <span className="text-red-500">*</span>
+                  Số Lượng <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  name="owner"
-                  value={formData.owner}
+                  type="number"
+                  name="quantity"
+                  value={formData.quantity}
                   onChange={handleChange}
-                  placeholder="Nguyễn Văn A"
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="example@email.com"
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Số Điện Thoại <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="0912345678"
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Địa Chỉ <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Nhập địa chỉ đầy đủ"
-                  rows={2}
+                  placeholder="0"
+                  min="1"
                   className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />

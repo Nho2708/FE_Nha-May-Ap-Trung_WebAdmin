@@ -5,299 +5,124 @@ import { Pagination } from './pagination';
 
 interface Device {
   id: string;
-  model: string;
-  owner: string;
-  status: 'running' | 'warning' | 'maintenance';
-  temperature: number;
-  humidity: number;
-  fanSpeed: number;
-  heaterStatus: boolean;
-  motorCycle: string;
+  name: string;
+  type: 'sensor' | 'fan' | 'heater' | 'motor' | 'other';
+  incubatorId: string;
+  status: 'working' | 'warning' | 'faulty';
+  lastCalibrated: string;
+  accuracy?: string;
+  power?: string;
+  location?: string;
 }
 
 const mockDevices: Device[] = [
   {
-    id: 'INC-2024-001',
-    model: '100 trứng',
-    owner: 'Nguyễn Văn A',
-    status: 'running',
-    temperature: 37.5,
-    humidity: 65,
-    fanSpeed: 85,
-    heaterStatus: true,
-    motorCycle: '2h'
+    id: 'SEN-2024-001',
+    name: 'Cảm biến nhiệt độ chính',
+    type: 'sensor',
+    incubatorId: 'INC-001',
+    status: 'working',
+    lastCalibrated: '2024-01-15',
+    accuracy: '±0.1°C',
+    location: 'Tầng 1'
   },
   {
-    id: 'INC-2024-002',
-    model: '200 trứng',
-    owner: 'Trần Thị B',
+    id: 'SEN-2024-002',
+    name: 'Cảm biến độ ẩm',
+    type: 'sensor',
+    incubatorId: 'INC-001',
+    status: 'working',
+    lastCalibrated: '2024-01-10',
+    accuracy: '±2%',
+    location: 'Tầng 2'
+  },
+  {
+    id: 'FAN-2024-001',
+    name: 'Quạt tuần hoàn gió',
+    type: 'fan',
+    incubatorId: 'INC-001',
+    status: 'working',
+    lastCalibrated: '2024-01-20',
+    power: '50W',
+    location: 'Phía trên'
+  },
+  {
+    id: 'FAN-2024-002',
+    name: 'Quạt tản nhiệt',
+    type: 'fan',
+    incubatorId: 'INC-002',
     status: 'warning',
-    temperature: 38.2,
-    humidity: 58,
-    fanSpeed: 92,
-    heaterStatus: true,
-    motorCycle: '2h'
+    lastCalibrated: '2024-01-05',
+    power: '60W',
+    location: 'Phía sau'
   },
   {
-    id: 'INC-2024-003',
-    model: '50 trứng',
-    owner: 'Lê Văn C',
-    status: 'running',
-    temperature: 37.7,
-    humidity: 63,
-    fanSpeed: 88,
-    heaterStatus: true,
-    motorCycle: '2h'
+    id: 'HET-2024-001',
+    name: 'Phần tử gia nhiệt chính',
+    type: 'heater',
+    incubatorId: 'INC-001',
+    status: 'working',
+    lastCalibrated: '2024-01-18',
+    power: '300W',
+    location: 'Dưới đáy'
   },
   {
-    id: 'INC-2024-004',
-    model: '500 trứng',
-    owner: 'Phạm Thị D',
-    status: 'maintenance',
-    temperature: 35.0,
-    humidity: 45,
-    fanSpeed: 0,
-    heaterStatus: false,
-    motorCycle: 'Off'
+    id: 'HET-2024-002',
+    name: 'Phần tử gia nhiệt phụ',
+    type: 'heater',
+    incubatorId: 'INC-002',
+    status: 'faulty',
+    lastCalibrated: '2023-12-20',
+    power: '250W',
+    location: 'Góc phải'
   },
   {
-    id: 'INC-2024-005',
-    model: '100 trứng',
-    owner: 'Hoàng Văn E',
-    status: 'running',
-    temperature: 37.4,
-    humidity: 64,
-    fanSpeed: 86,
-    heaterStatus: true,
-    motorCycle: '2h'
+    id: 'MOT-2024-001',
+    name: 'Động cơ đảo trứng',
+    type: 'motor',
+    incubatorId: 'INC-001',
+    status: 'working',
+    lastCalibrated: '2024-01-12',
+    power: '45W',
+    location: 'Khay trứng'
   },
   {
-    id: 'INC-2024-006',
-    model: '200 trứng',
-    owner: 'Vũ Thị F',
-    status: 'running',
-    temperature: 37.6,
-    humidity: 66,
-    fanSpeed: 84,
-    heaterStatus: true,
-    motorCycle: '2h'
+    id: 'MOT-2024-002',
+    name: 'Động cơ cửa tự động',
+    type: 'motor',
+    incubatorId: 'INC-003',
+    status: 'working',
+    lastCalibrated: '2024-01-19',
+    power: '30W',
+    location: 'Cửa chính'
   },
   {
-    id: 'INC-2024-007',
-    model: '50 trứng',
-    owner: 'Đặng Văn G',
-    status: 'warning',
-    temperature: 38.5,
-    humidity: 57,
-    fanSpeed: 95,
-    heaterStatus: true,
-    motorCycle: '2h'
+    id: 'SEN-2024-003',
+    name: 'Cảm biến nhiệt độ dự phòng',
+    type: 'sensor',
+    incubatorId: 'INC-002',
+    status: 'working',
+    lastCalibrated: '2024-01-22',
+    accuracy: '±0.15°C',
+    location: 'Tầng 3'
   },
   {
-    id: 'INC-2024-008',
-    model: '100 trứng',
-    owner: 'Bùi Thị H',
-    status: 'running',
-    temperature: 37.3,
-    humidity: 65,
-    fanSpeed: 87,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-009',
-    model: '500 trứng',
-    owner: 'Ngô Văn I',
-    status: 'running',
-    temperature: 37.8,
-    humidity: 62,
-    fanSpeed: 89,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-010',
-    model: '200 trứng',
-    owner: 'Phan Thị J',
-    status: 'maintenance',
-    temperature: 34.5,
-    humidity: 42,
-    fanSpeed: 0,
-    heaterStatus: false,
-    motorCycle: 'Off'
-  },
-  {
-    id: 'INC-2024-011',
-    model: '100 trứng',
-    owner: 'Trịnh Văn K',
-    status: 'running',
-    temperature: 37.5,
-    humidity: 64,
-    fanSpeed: 85,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-012',
-    model: '50 trứng',
-    owner: 'Lý Thị L',
-    status: 'warning',
-    temperature: 38.0,
-    humidity: 59,
-    fanSpeed: 90,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-013',
-    model: '200 trứng',
-    owner: 'Mai Văn M',
-    status: 'running',
-    temperature: 37.6,
-    humidity: 63,
-    fanSpeed: 86,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-014',
-    model: '100 trứng',
-    owner: 'Dương Thị N',
-    status: 'running',
-    temperature: 37.4,
-    humidity: 65,
-    fanSpeed: 84,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-015',
-    model: '500 trứng',
-    owner: 'Hà Văn O',
-    status: 'maintenance',
-    temperature: 35.2,
-    humidity: 46,
-    fanSpeed: 0,
-    heaterStatus: false,
-    motorCycle: 'Off'
-  },
-  {
-    id: 'INC-2024-016',
-    model: '200 trứng',
-    owner: 'Cao Thị P',
-    status: 'running',
-    temperature: 37.7,
-    humidity: 64,
-    fanSpeed: 87,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-017',
-    model: '100 trứng',
-    owner: 'Tô Văn Q',
-    status: 'warning',
-    temperature: 38.3,
-    humidity: 58,
-    fanSpeed: 93,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-018',
-    model: '50 trứng',
-    owner: 'Đinh Thị R',
-    status: 'running',
-    temperature: 37.5,
-    humidity: 65,
-    fanSpeed: 85,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-019',
-    model: '200 trứng',
-    owner: 'Lâm Văn S',
-    status: 'running',
-    temperature: 37.6,
-    humidity: 63,
-    fanSpeed: 86,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-020',
-    model: '100 trứng',
-    owner: 'Ông Thị T',
-    status: 'running',
-    temperature: 37.4,
-    humidity: 64,
-    fanSpeed: 84,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-021',
-    model: '500 trứng',
-    owner: 'Võ Văn U',
-    status: 'warning',
-    temperature: 38.1,
-    humidity: 60,
-    fanSpeed: 91,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-022',
-    model: '200 trứng',
-    owner: 'Từ Thị V',
-    status: 'running',
-    temperature: 37.5,
-    humidity: 65,
-    fanSpeed: 85,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-023',
-    model: '100 trứng',
-    owner: 'Khương Văn W',
-    status: 'maintenance',
-    temperature: 34.8,
-    humidity: 44,
-    fanSpeed: 0,
-    heaterStatus: false,
-    motorCycle: 'Off'
-  },
-  {
-    id: 'INC-2024-024',
-    model: '50 trứng',
-    owner: 'La Thị X',
-    status: 'running',
-    temperature: 37.6,
-    humidity: 64,
-    fanSpeed: 86,
-    heaterStatus: true,
-    motorCycle: '2h'
-  },
-  {
-    id: 'INC-2024-025',
-    model: '200 trứng',
-    owner: 'Thạch Văn Y',
-    status: 'running',
-    temperature: 37.7,
-    humidity: 63,
-    fanSpeed: 87,
-    heaterStatus: true,
-    motorCycle: '2h'
+    id: 'FAN-2024-003',
+    name: 'Quạt khẩy khí',
+    type: 'fan',
+    incubatorId: 'INC-003',
+    status: 'working',
+    lastCalibrated: '2024-01-21',
+    power: '40W',
+    location: 'Phía trước'
   },
 ];
 
 const StatusBadge = ({ status }: { status: string }) => {
   const config = {
-    running: { label: 'Hoạt động', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+    working: { label: 'Hoạt động tốt', color: 'bg-green-100 text-green-800', icon: CheckCircle },
     warning: { label: 'Cảnh báo', color: 'bg-yellow-100 text-yellow-800', icon: AlertCircle },
-    maintenance: { label: 'Bảo trì', color: 'bg-red-100 text-red-800', icon: Activity },
+    faulty: { label: 'Hỏng hóc', color: 'bg-red-100 text-red-800', icon: Activity },
   };
 
   const { label, color, icon: Icon } = config[status as keyof typeof config];
@@ -308,6 +133,18 @@ const StatusBadge = ({ status }: { status: string }) => {
       {label}
     </span>
   );
+};
+
+const DeviceTypeIcon = ({ type }: { type: string }) => {
+  const icons: { [key: string]: React.ElementType } = {
+    sensor: Thermometer,
+    fan: Activity,
+    heater: AlertCircle,
+    motor: CheckCircle,
+    other: CheckCircle,
+  };
+  const Icon = icons[type] || CheckCircle;
+  return <Icon size={16} />;
 };
 
 export function DeviceManagement() {
@@ -328,7 +165,7 @@ export function DeviceManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Quản Lý Thiết Bị</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Quản Lý Thiết Bị Nội Bộ</h2>
         <div className="flex gap-3">
           <button className="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
             Lọc
@@ -350,13 +187,13 @@ export function DeviceManagement() {
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Mã Máy
+                    Mã Thiết Bị
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Dòng Máy
+                    Tên Thiết Bị
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Chủ Sở Hữu
+                    Loại
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Trạng Thái
@@ -379,10 +216,13 @@ export function DeviceManagement() {
                       {device.id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {device.model}
+                      {device.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {device.owner}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <DeviceTypeIcon type={device.type} />
+                        <span className="capitalize">{device.type}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={device.status} />
@@ -419,66 +259,74 @@ export function DeviceManagement() {
 
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-700 flex items-center gap-2">
-                      <Thermometer size={16} />
-                      Nhiệt độ
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-700 font-semibold">Tên</span>
+                    <span className="text-sm font-medium text-slate-900">
+                      {selectedDevice.name}
                     </span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      {selectedDevice.temperature}°C
-                    </span>
-                  </div>
-                  <div className="w-full bg-white rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${(selectedDevice.temperature / 40) * 100}%` }}
-                    />
                   </div>
                 </div>
 
                 <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-700">Độ ẩm</span>
-                    <span className="text-2xl font-bold text-green-600">
-                      {selectedDevice.humidity}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-white rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full" 
-                      style={{ width: `${selectedDevice.humidity}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-600 mb-1">Tốc độ quạt</p>
-                    <p className="text-lg font-semibold text-slate-800">
-                      {selectedDevice.fanSpeed}%
-                    </p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-600 mb-1">Máy gia nhiệt</p>
-                    <p className="text-lg font-semibold text-slate-800">
-                      {selectedDevice.heaterStatus ? 'ON' : 'OFF'}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-700 font-semibold">Loại Thiết Bị</span>
+                    <div className="flex items-center gap-2">
+                      <DeviceTypeIcon type={selectedDevice.type} />
+                      <span className="text-sm font-medium capitalize text-slate-900">
+                        {selectedDevice.type === 'sensor' && 'Cảm biến'}
+                        {selectedDevice.type === 'fan' && 'Quạt'}
+                        {selectedDevice.type === 'heater' && 'Máy gia nhiệt'}
+                        {selectedDevice.type === 'motor' && 'Động cơ'}
+                        {selectedDevice.type === 'other' && 'Khác'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 rounded-lg p-3">
-                  <p className="text-xs text-slate-600 mb-1">Chu kỳ đảo trứng</p>
-                  <p className="text-lg font-semibold text-slate-800">
-                    {selectedDevice.motorCycle}
-                  </p>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-700 font-semibold">Máy Ấp Chứa</span>
+                    <span className="text-sm font-medium text-slate-900">{selectedDevice.incubatorId}</span>
+                  </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4 text-center">
-                  <QrCode size={80} className="mx-auto mb-2 text-purple-600" />
-                  <p className="text-xs text-slate-700">QR Code Thiết Bị</p>
-                  <p className="text-sm font-semibold text-slate-800 mt-1">
-                    {selectedDevice.id}
-                  </p>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-700 font-semibold">Vị Trí</span>
+                    <span className="text-sm font-medium text-slate-900">{selectedDevice.location}</span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-700 font-semibold">Lần Cân Chỉnh</span>
+                    <span className="text-sm font-medium text-slate-900">{selectedDevice.lastCalibrated}</span>
+                  </div>
+                </div>
+
+                {selectedDevice.accuracy && (
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-700 font-semibold">Độ Chính Xác</span>
+                      <span className="text-sm font-medium text-slate-900">{selectedDevice.accuracy}</span>
+                    </div>
+                  </div>
+                )}
+
+                {selectedDevice.power && (
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-700 font-semibold">Công Suất</span>
+                      <span className="text-sm font-medium text-slate-900">{selectedDevice.power}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-700 font-semibold">Trạng Thái</span>
+                    <StatusBadge status={selectedDevice.status} />
+                  </div>
                 </div>
               </div>
             </div>
