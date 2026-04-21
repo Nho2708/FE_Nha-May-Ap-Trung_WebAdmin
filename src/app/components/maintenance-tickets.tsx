@@ -1,370 +1,298 @@
-import React, { useState } from 'react';
-import { Wrench, AlertCircle, Clock, CheckCircle, Image as ImageIcon, Plus, Send, MapPin, X } from 'lucide-react';
-import { Pagination } from './pagination';
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Wrench,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Plus,
+  RefreshCw,
+  ClipboardList,
+  Send,
+} from "lucide-react";
+import { Pagination } from "./pagination";
+import { ResourceActionsMenu } from "./resource-actions-menu";
+import { OptionalLabel, RequiredLabel, SidePanel } from "./side-panel";
+import { can } from "@/config/permissions";
+import { useSession } from "@/hooks/use-session";
+import { maintenanceService } from "@/services/maintenance";
+import { userService } from "@/services/users";
+import type {
+  CreateMaintenanceTicketPayload,
+  MaintenanceLog,
+  MaintenanceTicket,
+  MaintenanceTicketDetail,
+  MaintenanceTicketStatus,
+} from "@/types/maintenance";
+import type { User } from "@/types/user";
+import { formatDateTime, formatEnumLabel, formatShortId } from "@/utils/format";
 
-interface Ticket {
-  id: string;
-  deviceId: string;
-  customer: string;
-  issue: string;
-  status: 'new' | 'processing' | 'done';
-  priority: 'low' | 'medium' | 'high';
-  createdAt: string;
-  assignee?: string;
-  solution?: string;
-  hasImage: boolean;
-}
-
-const mockTickets: Ticket[] = [
-  {
-    id: 'TKT-2024-001',
-    deviceId: 'INC-2024-045',
-    customer: 'Nguyễn Văn A',
-    issue: 'Máy không gia nhiệt, nhiệt độ giảm xuống dưới 35°C',
-    status: 'processing',
-    priority: 'high',
-    createdAt: '2024-01-08 09:30',
-    assignee: 'Kỹ thuật viên Minh',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-002',
-    deviceId: 'INC-2024-032',
-    customer: 'Trần Thị B',
-    issue: 'Motor đảo trứng không hoạt động',
-    status: 'new',
-    priority: 'high',
-    createdAt: '2024-01-08 14:15',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-003',
-    deviceId: 'INC-2024-028',
-    customer: 'Lê Văn C',
-    issue: 'Màn hình LCD hiển thị không chính xác',
-    status: 'done',
-    priority: 'medium',
-    createdAt: '2024-01-07 16:20',
-    assignee: 'Kỹ thuật viên Hùng',
-    solution: 'Reset cài đặt và cập nhật firmware',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-004',
-    deviceId: 'INC-2024-019',
-    customer: 'Phạm Thị D',
-    issue: 'Quạt hoạt động không ổn định',
-    status: 'processing',
-    priority: 'medium',
-    createdAt: '2024-01-08 10:45',
-    assignee: 'Kỹ thuật viên Minh',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-005',
-    deviceId: 'INC-2024-012',
-    customer: 'Hoàng Văn E',
-    issue: 'Cảm biến độ ẩm báo lỗi',
-    status: 'new',
-    priority: 'low',
-    createdAt: '2024-01-08 15:30',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-006',
-    deviceId: 'INC-2024-056',
-    customer: 'Vũ Thị F',
-    issue: 'Máy tự động tắt sau 2 giờ hoạt động',
-    status: 'processing',
-    priority: 'high',
-    createdAt: '2024-01-09 08:15',
-    assignee: 'Kỹ thuật viên Hùng',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-007',
-    deviceId: 'INC-2024-067',
-    customer: 'Đặng Văn G',
-    issue: 'Cảnh báo nhiệt độ cao liên tục',
-    status: 'new',
-    priority: 'high',
-    createdAt: '2024-01-09 11:20',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-008',
-    deviceId: 'INC-2024-021',
-    customer: 'Bùi Thị H',
-    issue: 'Nút bấm không phản hồi',
-    status: 'done',
-    priority: 'low',
-    createdAt: '2024-01-07 14:30',
-    assignee: 'Kỹ thuật viên Minh',
-    solution: 'Thay bàn phím mới',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-009',
-    deviceId: 'INC-2024-038',
-    customer: 'Ngô Văn I',
-    issue: 'Độ ẩm không đạt mức cài đặt',
-    status: 'processing',
-    priority: 'medium',
-    createdAt: '2024-01-09 09:45',
-    assignee: 'Kỹ thuật viên Hùng',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-010',
-    deviceId: 'INC-2024-049',
-    customer: 'Phan Thị J',
-    issue: 'Tiếng ồn bất thường từ motor',
-    status: 'new',
-    priority: 'medium',
-    createdAt: '2024-01-09 13:00',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-011',
-    deviceId: 'INC-2024-014',
-    customer: 'Trịnh Văn K',
-    issue: 'Đèn báo hiệu không sáng',
-    status: 'done',
-    priority: 'low',
-    createdAt: '2024-01-06 10:15',
-    assignee: 'Kỹ thuật viên Minh',
-    solution: 'Thay đèn LED mới',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-012',
-    deviceId: 'INC-2024-072',
-    customer: 'Lý Thị L',
-    issue: 'Lỗi kết nối WiFi',
-    status: 'processing',
-    priority: 'low',
-    createdAt: '2024-01-09 14:30',
-    assignee: 'Kỹ thuật viên Hùng',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-013',
-    deviceId: 'INC-2024-083',
-    customer: 'Mai Văn M',
-    issue: 'Bộ nhớ lưu trữ đầy',
-    status: 'new',
-    priority: 'medium',
-    createdAt: '2024-01-10 08:00',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-014',
-    deviceId: 'INC-2024-051',
-    customer: 'Dương Thị N',
-    issue: 'Quạt không quay sau khi bật máy',
-    status: 'processing',
-    priority: 'high',
-    createdAt: '2024-01-10 09:20',
-    assignee: 'Kỹ thuật viên Minh',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-015',
-    deviceId: 'INC-2024-029',
-    customer: 'Hà Văn O',
-    issue: 'Cảm biến nhiệt độ đọc sai',
-    status: 'done',
-    priority: 'high',
-    createdAt: '2024-01-08 11:00',
-    assignee: 'Kỹ thuật viên Hùng',
-    solution: 'Hiệu chuẩn lại cảm biến',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-016',
-    deviceId: 'INC-2024-094',
-    customer: 'Cao Thị P',
-    issue: 'Máy không lưu cài đặt',
-    status: 'new',
-    priority: 'medium',
-    createdAt: '2024-01-10 10:15',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-017',
-    deviceId: 'INC-2024-063',
-    customer: 'Tô Văn Q',
-    issue: 'Nguồn điện không ổn định',
-    status: 'processing',
-    priority: 'high',
-    createdAt: '2024-01-10 11:30',
-    assignee: 'Kỹ thuật viên Minh',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-018',
-    deviceId: 'INC-2024-041',
-    customer: 'Đinh Thị R',
-    issue: 'Ứng dụng mobile không kết nối được',
-    status: 'new',
-    priority: 'low',
-    createdAt: '2024-01-10 12:45',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-019',
-    deviceId: 'INC-2024-076',
-    customer: 'Lâm Văn S',
-    issue: 'Khay đảo trứng bị kẹt',
-    status: 'done',
-    priority: 'high',
-    createdAt: '2024-01-09 07:30',
-    assignee: 'Kỹ thuật viên Hùng',
-    solution: 'Vệ sinh và bôi trơn motor',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-020',
-    deviceId: 'INC-2024-088',
-    customer: 'Ông Thị T',
-    issue: 'Báo lỗi E03 không rõ nguyên nhân',
-    status: 'processing',
-    priority: 'medium',
-    createdAt: '2024-01-10 13:00',
-    assignee: 'Kỹ thuật viên Minh',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-021',
-    deviceId: 'INC-2024-052',
-    customer: 'Võ Văn U',
-    issue: 'Máy phát ra mùi cháy nhẹ',
-    status: 'new',
-    priority: 'high',
-    createdAt: '2024-01-10 14:00',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-022',
-    deviceId: 'INC-2024-069',
-    customer: 'Từ Thị V',
-    issue: 'Thời gian đảo trứng không chính xác',
-    status: 'done',
-    priority: 'medium',
-    createdAt: '2024-01-09 15:30',
-    assignee: 'Kỹ thuật viên Hùng',
-    solution: 'Cập nhật firmware mới nhất',
-    hasImage: false
-  },
-  {
-    id: 'TKT-2024-023',
-    deviceId: 'INC-2024-035',
-    customer: 'Khương Văn W',
-    issue: 'Màn hình hiển thị nhấp nháy',
-    status: 'processing',
-    priority: 'low',
-    createdAt: '2024-01-10 15:00',
-    assignee: 'Kỹ thuật viên Minh',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-024',
-    deviceId: 'INC-2024-091',
-    customer: 'La Thị X',
-    issue: 'Cửa máy đóng không kín',
-    status: 'new',
-    priority: 'medium',
-    createdAt: '2024-01-10 16:00',
-    hasImage: true
-  },
-  {
-    id: 'TKT-2024-025',
-    deviceId: 'INC-2024-047',
-    customer: 'Thạch Văn Y',
-    issue: 'Hệ thống báo lỗi cảm biến áp suất',
-    status: 'processing',
-    priority: 'high',
-    createdAt: '2024-01-10 16:30',
-    assignee: 'Kỹ thuật viên Hùng',
-    hasImage: true
-  },
-];
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const config = {
-    new: { label: 'Mới', color: 'bg-blue-100 text-blue-800', icon: Clock },
-    processing: { label: 'Đang xử lý', color: 'bg-yellow-100 text-yellow-800', icon: Wrench },
-    done: { label: 'Hoàn thành', color: 'bg-green-100 text-green-800', icon: CheckCircle },
-  };
-
-  const { label, color, icon: Icon } = config[status as keyof typeof config];
-
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
-      <Icon size={10} />
-      {label}
-    </span>
-  );
+const STATUS_META: Record<
+  string,
+  { label: string; color: string; icon: React.ElementType }
+> = {
+  PENDING: { label: "Chờ xử lý", color: "bg-blue-100 text-blue-800", icon: Clock },
+  ASSIGNED: { label: "Đã phân công", color: "bg-amber-100 text-amber-800", icon: Wrench },
+  IN_PROGRESS: { label: "Đang xử lý", color: "bg-yellow-100 text-yellow-800", icon: Wrench },
+  RESOLVED: { label: "Đã xử lý", color: "bg-green-100 text-green-800", icon: CheckCircle },
+  REJECTED: { label: "Từ chối", color: "bg-red-100 text-red-800", icon: AlertCircle },
+  CANCELLED: { label: "Đã hủy", color: "bg-slate-100 text-slate-700", icon: AlertCircle },
+  CLOSED: { label: "Đã đóng", color: "bg-emerald-100 text-emerald-800", icon: CheckCircle },
 };
 
-const PriorityBadge = ({ priority }: { priority: string }) => {
-  const config = {
-    low: { label: 'Thấp', color: 'bg-slate-100 text-slate-700' },
-    medium: { label: 'TB', color: 'bg-orange-100 text-orange-700' },
-    high: { label: 'Cao', color: 'bg-red-100 text-red-700' },
-  };
+const FILTER_OPTIONS: { value: MaintenanceTicketStatus | "all"; label: string }[] = [
+  { value: "all", label: "Tất cả" },
+  { value: "PENDING", label: "Chờ xử lý" },
+  { value: "ASSIGNED", label: "Đã phân công" },
+  { value: "IN_PROGRESS", label: "Đang xử lý" },
+  { value: "RESOLVED", label: "Đã xử lý" },
+  { value: "CLOSED", label: "Đã đóng" },
+];
 
-  const { label, color } = config[priority as keyof typeof config];
+interface TicketStats {
+  total: number;
+  pending: number;
+  processing: number;
+  done: number;
+}
+
+const getStatusMeta = (status: string) => {
+  return STATUS_META[status] || {
+    label: formatEnumLabel(status),
+    color: "bg-slate-100 text-slate-700",
+    icon: ClipboardList,
+  };
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const meta = getStatusMeta(status);
+  const Icon = meta.icon;
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color}`}>
-      {label}
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${meta.color}`}>
+      <Icon size={10} />
+      {meta.label}
     </span>
   );
 };
 
 export function MaintenanceTickets() {
-  const [tickets] = useState<Ticket[]>(mockTickets);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const session = useSession();
+  const role = session?.role;
+  const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
+  const [ticketTotalItems, setTicketTotalItems] = useState(0);
+  const [ticketTotalPages, setTicketTotalPages] = useState(1);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<MaintenanceTicketDetail | null>(null);
+  const [technicians, setTechnicians] = useState<User[]>([]);
+  const [filterStatus, setFilterStatus] = useState<MaintenanceTicketStatus | "all">("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [stats, setStats] = useState<TicketStats>({ total: 0, pending: 0, processing: 0, done: 0 });
+  const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [progressNote, setProgressNote] = useState("");
+
   const ticketsPerPage = 10;
 
-  const filteredTickets = filterStatus === 'all'
-    ? tickets
-    : tickets.filter(t => t.status === filterStatus);
+  const technicianMap = useMemo(() => {
+    return new Map(technicians.map((user) => [user.id, user.fullName]));
+  }, [technicians]);
 
-  const indexOfLastTicket = currentPage * ticketsPerPage;
-  const indexOfFirstTicket = indexOfLastTicket - ticketsPerPage;
-  const currentTickets = filteredTickets.slice(indexOfFirstTicket, indexOfLastTicket);
+  const loadStats = async () => {
+    const [all, pending, assigned, inProgress, resolved, closed] = await Promise.all([
+      maintenanceService.list({ page: 1, pageSize: 1 }),
+      maintenanceService.list({ status: "PENDING", page: 1, pageSize: 1 }),
+      maintenanceService.list({ status: "ASSIGNED", page: 1, pageSize: 1 }),
+      maintenanceService.list({ status: "IN_PROGRESS", page: 1, pageSize: 1 }),
+      maintenanceService.list({ status: "RESOLVED", page: 1, pageSize: 1 }),
+      maintenanceService.list({ status: "CLOSED", page: 1, pageSize: 1 }),
+    ]);
 
-  const totalPages = Math.ceil(filteredTickets.length / ticketsPerPage);
+    setStats({
+      total: all.totalItems,
+      pending: pending.totalItems,
+      processing: assigned.totalItems + inProgress.totalItems,
+      done: resolved.totalItems + closed.totalItems,
+    });
+  };
+
+  const loadTechnicians = async () => {
+    try {
+      const result = await userService.list({ role: "TECHNICIAN", page: 1, pageSize: 200 });
+      setTechnicians(result.items);
+    } catch {
+      setTechnicians([]);
+    }
+  };
+
+  const loadTickets = async (page = currentPage, status = filterStatus) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await maintenanceService.list({
+        status,
+        page,
+        pageSize: ticketsPerPage,
+      });
+
+      setTickets(result.items);
+      setTicketTotalItems(result.totalItems);
+      setTicketTotalPages(Math.max(1, result.totalPages));
+
+      if (result.items.length === 0) {
+        setSelectedTicketId(null);
+      } else if (!selectedTicketId || !result.items.some((ticket) => ticket.id === selectedTicketId)) {
+        setSelectedTicketId(result.items[0].id);
+      }
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Không thể tải danh sách ticket.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDetail = async (ticketId: string) => {
+    setDetailLoading(true);
+
+    try {
+      const detail = await maintenanceService.getById(ticketId);
+      setSelectedDetail(detail);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Không thể tải chi tiết ticket.");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void Promise.all([loadStats(), loadTechnicians()]);
+  }, []);
+
+  useEffect(() => {
+    void loadTickets(currentPage, filterStatus);
+  }, [currentPage, filterStatus]);
+
+  useEffect(() => {
+    if (selectedTicketId) {
+      void loadDetail(selectedTicketId);
+    } else {
+      setSelectedDetail(null);
+    }
+  }, [selectedTicketId]);
+
+  const handleStatusUpdate = async (status: MaintenanceTicketStatus) => {
+    if (!selectedTicketId) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      await maintenanceService.updateStatus(selectedTicketId, status);
+      await Promise.all([loadDetail(selectedTicketId), loadTickets(currentPage, filterStatus), loadStats()]);
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Không thể cập nhật trạng thái.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAddLog = async () => {
+    if (!selectedTicketId || !progressNote.trim()) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      await maintenanceService.addLog(selectedTicketId, progressNote);
+      setProgressNote("");
+      await loadDetail(selectedTicketId);
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Không thể thêm log.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateTicket = async (payload: CreateMaintenanceTicketPayload) => {
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      await maintenanceService.create(payload);
+      setIsCreateOpen(false);
+      setCurrentPage(1);
+      await Promise.all([loadStats(), loadTickets(1, filterStatus)]);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Không thể tạo ticket bảo trì.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const selectedTicket = selectedDetail?.ticket ?? null;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-800">Hệ Thống Bảo Trì</h2>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">Tất cả</option>
-          <option value="new">Mới</option>
-          <option value="processing">Đang xử lý</option>
-          <option value="done">Hoàn thành</option>
-        </select>
+        <div className="flex items-center gap-2">
+          {can(role, "maintenance", "create") && (
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <Plus size={18} />
+              Tạo Ticket
+            </button>
+          )}
+          <select
+            value={filterStatus}
+            onChange={(event) => {
+              setCurrentPage(1);
+              setFilterStatus(event.target.value as MaintenanceTicketStatus | "all");
+            }}
+            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {FILTER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              void Promise.all([loadStats(), loadTickets(currentPage, filterStatus)]);
+            }}
+            disabled={loading}
+            className="px-3 py-1.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-60"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Tải lại
+          </button>
+        </div>
       </div>
 
-      {/* Statistics */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-700 mb-0.5">Ticket Mới</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {tickets.filter(t => t.status === 'new').length}
-              </p>
+              <p className="text-xs text-slate-700 mb-0.5">Chờ Xử Lý</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
             </div>
             <Clock size={24} className="text-blue-500" />
           </div>
@@ -374,9 +302,7 @@ export function MaintenanceTickets() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-700 mb-0.5">Đang Xử Lý</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {tickets.filter(t => t.status === 'processing').length}
-              </p>
+              <p className="text-2xl font-bold text-yellow-600">{stats.processing}</p>
             </div>
             <Wrench size={24} className="text-yellow-500" />
           </div>
@@ -385,10 +311,8 @@ export function MaintenanceTickets() {
         <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-700 mb-0.5">Hoàn Thành</p>
-              <p className="text-2xl font-bold text-green-600">
-                {tickets.filter(t => t.status === 'done').length}
-              </p>
+              <p className="text-xs text-slate-700 mb-0.5">Đã Xử Lý</p>
+              <p className="text-2xl font-bold text-green-600">{stats.done}</p>
             </div>
             <CheckCircle size={24} className="text-green-500" />
           </div>
@@ -396,164 +320,179 @@ export function MaintenanceTickets() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Ticket List */}
         <div className="lg:col-span-2 space-y-2.5">
-          {currentTickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              onClick={() => setSelectedTicket(ticket)}
-              className={`bg-white rounded-lg shadow-sm border-2 p-3.5 cursor-pointer transition-all hover:shadow ${
-                selectedTicket?.id === ticket.id
-                  ? 'border-blue-500'
-                  : 'border-slate-200'
-              }`}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <h3 className="text-sm font-semibold text-slate-800">{ticket.id}</h3>
-                    <StatusBadge status={ticket.status} />
-                    <PriorityBadge priority={ticket.priority} />
-                  </div>
-                  <p className="text-xs text-slate-600 mb-1.5">
-                    Thiết bị: <span className="font-medium text-slate-800">{ticket.deviceId}</span>
-                  </p>
-                  <p className="text-xs text-slate-700">{ticket.issue}</p>
-                </div>
-                {ticket.hasImage && (
-                  <ImageIcon size={16} className="text-blue-500 ml-2" />
-                )}
-              </div>
-
-              <div className="flex items-center justify-between text-xs border-t border-slate-200 pt-2 mt-2">
-                <div className="text-slate-600">
-                  <span className="font-medium text-slate-800">{ticket.customer}</span>
-                  <span className="mx-1.5">•</span>
-                  <span>{ticket.createdAt}</span>
-                </div>
-                {ticket.assignee && (
-                  <span className="text-blue-600 font-medium text-xs">
-                    {ticket.assignee}
-                  </span>
-                )}
-              </div>
+          {loading ? (
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-10 text-center text-slate-500">
+              <Loader2 size={28} className="mx-auto mb-3 animate-spin" />
+              Đang tải ticket...
             </div>
-          ))}
+          ) : (
+            <>
+              {tickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  onClick={() => setSelectedTicketId(ticket.id)}
+                  className={`bg-white rounded-lg shadow-sm border-2 p-3.5 cursor-pointer transition-all hover:shadow ${
+                    selectedTicketId === ticket.id ? "border-blue-500" : "border-slate-200"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <h3 className="text-sm font-semibold text-slate-800">{formatShortId(ticket.id)}</h3>
+                        <StatusBadge status={ticket.status} />
+                      </div>
+                      <p className="text-xs text-slate-600 mb-1.5">
+                        Máy ấp: <span className="font-medium text-slate-800">{formatShortId(ticket.incubatorId)}</span>
+                      </p>
+                      <p className="text-xs text-slate-700">{ticket.issueDescription}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs border-t border-slate-200 pt-2 mt-2">
+                    <div className="text-slate-600">
+                      Tạo lúc <span className="font-medium text-slate-800">{formatDateTime(ticket.createdAt)}</span>
+                    </div>
+                    <span className="text-blue-600 font-medium text-xs">
+                      {ticket.technicianId
+                        ? technicianMap.get(ticket.technicianId) || formatShortId(ticket.technicianId)
+                        : "Chưa phân công"}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex justify-end">
+                    <ResourceActionsMenu
+                      canEdit={can(role, "maintenance", "edit")}
+                      canDelete={can(role, "maintenance", "delete")}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {tickets.length === 0 && (
+                <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-10 text-center text-slate-500">
+                  Không có ticket phù hợp với bộ lọc.
+                </div>
+              )}
+            </>
+          )}
+
           <Pagination
-            totalItems={filteredTickets.length}
+            totalItems={ticketTotalItems}
             itemsPerPage={ticketsPerPage}
             currentPage={currentPage}
-            totalPages={totalPages}
+            totalPages={ticketTotalPages}
             onPageChange={setCurrentPage}
           />
         </div>
 
-        {/* Ticket Details */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 h-fit sticky top-6">
-          {selectedTicket ? (
+          {detailLoading ? (
+            <div className="py-8 text-center text-slate-500">
+              <Loader2 size={28} className="mx-auto mb-3 animate-spin" />
+              Đang tải chi tiết ticket...
+            </div>
+          ) : selectedTicket ? (
             <div className="space-y-4">
               <div className="border-b border-slate-200 pb-3">
-                <h3 className="text-base font-semibold text-slate-800 mb-1">
-                  Chi Tiết Ticket
-                </h3>
+                <h3 className="text-base font-semibold text-slate-800 mb-1">Chi Tiết Ticket</h3>
                 <p className="text-xs text-slate-600">{selectedTicket.id}</p>
               </div>
 
               <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                    Trạng thái
-                  </label>
+                <DetailRow label="Trạng thái">
                   <StatusBadge status={selectedTicket.status} />
-                </div>
+                </DetailRow>
+                <DetailRow label="Máy ấp">{selectedTicket.incubatorId}</DetailRow>
+                <DetailRow label="Kỹ thuật viên">
+                  {selectedTicket.technicianId
+                    ? technicianMap.get(selectedTicket.technicianId) || selectedTicket.technicianId
+                    : "Chưa phân công"}
+                </DetailRow>
+                <DetailRow label="Ngày tạo">{formatDateTime(selectedTicket.createdAt)}</DetailRow>
+                <DetailRow label="Ngày bắt đầu">{formatDateTime(selectedTicket.startedAt)}</DetailRow>
+                <DetailRow label="Ngày hoàn tất">{formatDateTime(selectedTicket.resolvedAt)}</DetailRow>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                    Mức độ ưu tiên
-                  </label>
-                  <PriorityBadge priority={selectedTicket.priority} />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                    Thiết bị
-                  </label>
-                  <p className="text-xs text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded">
-                    {selectedTicket.deviceId}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                    Khách hàng
-                  </label>
-                  <p className="text-xs text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded">
-                    {selectedTicket.customer}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                    Mô tả lỗi
-                  </label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1.5">Mô tả lỗi</label>
                   <p className="text-xs text-slate-700 bg-slate-50 px-2.5 py-1.5 rounded">
-                    {selectedTicket.issue}
+                    {selectedTicket.issueDescription}
                   </p>
                 </div>
 
-                {selectedTicket.assignee && (
+                {selectedTicket.resolutionSummary && (
                   <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                      Kỹ thuật viên
-                    </label>
-                    <p className="text-xs text-blue-600 font-medium bg-blue-50 px-2.5 py-1.5 rounded">
-                      {selectedTicket.assignee}
-                    </p>
-                  </div>
-                )}
-
-                {selectedTicket.solution && (
-                  <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                      Giải pháp
-                    </label>
+                    <label className="text-xs font-medium text-slate-700 block mb-1.5">Kết quả xử lý</label>
                     <p className="text-xs text-green-700 bg-green-50 px-2.5 py-1.5 rounded">
-                      {selectedTicket.solution}
+                      {selectedTicket.resolutionSummary}
                     </p>
                   </div>
                 )}
 
-                {selectedTicket.hasImage && (
+                {selectedDetail?.warranty && (
                   <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                      Hình ảnh
-                    </label>
-                    <div className="bg-slate-100 rounded-lg p-3 text-center">
-                      <ImageIcon size={24} className="mx-auto text-slate-400 mb-1" />
-                      <p className="text-xs text-slate-600">Có hình ảnh</p>
+                    <label className="text-xs font-medium text-slate-700 block mb-1.5">Bảo hành liên quan</label>
+                    <div className="text-xs text-slate-700 bg-slate-50 px-2.5 py-2 rounded space-y-1">
+                      <p>Mã BH: {selectedDetail.warranty.id}</p>
+                      <p>Hiệu lực đến: {selectedDetail.warranty.endDate || "--"}</p>
                     </div>
                   </div>
                 )}
 
+                <div>
+                  <label className="text-xs font-medium text-slate-700 block mb-1.5">
+                    Lịch sử xử lý ({selectedDetail?.logs.length ?? 0})
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {(selectedDetail?.logs ?? []).map((log) => (
+                      <LogItem key={log.id} log={log} />
+                    ))}
+                    {(selectedDetail?.logs.length ?? 0) === 0 && (
+                      <p className="text-xs text-slate-500">Chưa có cập nhật xử lý.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-slate-700 block">Cập nhật tiến độ</label>
+                  <textarea
+                    value={progressNote}
+                    onChange={(event) => setProgressNote(event.target.value)}
+                    rows={3}
+                    placeholder="Ví dụ: Đã liên hệ khách hàng, đang chờ linh kiện thay thế..."
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                  <button
+                    onClick={() => void handleAddLog()}
+                    disabled={actionLoading || !progressNote.trim()}
+                    className="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    <Send size={16} />
+                    Lưu Cập Nhật
+                  </button>
+                </div>
+
                 <div className="pt-3 space-y-1.5">
-                  {selectedTicket.status === 'new' && (
-                    <button className="w-full px-3 py-1.5 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
-                      Nhận Xử Lý
-                    </button>
-                  )}
-                  {selectedTicket.status === 'processing' && (
-                    <>
-                      <button className="w-full px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                        Thu Hồi Thiết Bị
-                      </button>
-                      <button className="w-full px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                        Hoàn Thành
-                      </button>
-                      <button className="w-full px-3 py-1.5 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
-                        Hướng Dẫn User
-                      </button>
-                    </>
-                  )}
+                  <button
+                    onClick={() => void handleStatusUpdate("IN_PROGRESS")}
+                    disabled={actionLoading}
+                    className="w-full px-3 py-1.5 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-60"
+                  >
+                    Chuyển Sang Đang Xử Lý
+                  </button>
+                  <button
+                    onClick={() => void handleStatusUpdate("RESOLVED")}
+                    disabled={actionLoading}
+                    className="w-full px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
+                  >
+                    Đánh Dấu Đã Xử Lý
+                  </button>
+                  <button
+                    onClick={() => void handleStatusUpdate("CLOSED")}
+                    disabled={actionLoading}
+                    className="w-full px-3 py-1.5 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-60"
+                  >
+                    Đóng Ticket
+                  </button>
                 </div>
               </div>
             </div>
@@ -565,6 +504,146 @@ export function MaintenanceTickets() {
           )}
         </div>
       </div>
+
+      <CreateMaintenanceTicketPanel
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSubmit={handleCreateTicket}
+        isSubmitting={actionLoading}
+        technicians={technicians}
+      />
+    </div>
+  );
+}
+
+function CreateMaintenanceTicketPanel({
+  isOpen,
+  onClose,
+  onSubmit,
+  isSubmitting,
+  technicians,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (payload: CreateMaintenanceTicketPayload) => void;
+  isSubmitting: boolean;
+  technicians: User[];
+}) {
+  const [formData, setFormData] = useState<CreateMaintenanceTicketPayload>({
+    incubatorId: "",
+    technicianId: "",
+    issueDescription: "",
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({ incubatorId: "", technicianId: "", issueDescription: "" });
+    }
+  }, [isOpen]);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    onSubmit({
+      incubatorId: formData.incubatorId.trim(),
+      technicianId: formData.technicianId?.trim() || undefined,
+      issueDescription: formData.issueDescription.trim(),
+    });
+  };
+
+  return (
+    <SidePanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Tạo Ticket Bảo Trì"
+      description="Ghi nhận sự cố và phân công kỹ thuật viên nếu đã xác định người xử lý."
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <RequiredLabel>Máy ấp</RequiredLabel>
+          <input
+            type="text"
+            value={formData.incubatorId}
+            onChange={(event) => setFormData({ ...formData, incubatorId: event.target.value })}
+            placeholder="Nhập ID máy ấp"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          <p className="mt-1 text-xs text-slate-500">Phải là GUID máy ấp theo API.</p>
+        </div>
+
+        <div>
+          <OptionalLabel>Kỹ thuật viên</OptionalLabel>
+          <select
+            value={formData.technicianId ?? ""}
+            onChange={(event) => setFormData({ ...formData, technicianId: event.target.value })}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Chưa phân công</option>
+            {technicians.map((technician) => (
+              <option key={technician.id} value={technician.id}>
+                {technician.fullName}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <RequiredLabel>Mô tả sự cố</RequiredLabel>
+          <textarea
+            value={formData.issueDescription}
+            onChange={(event) => setFormData({ ...formData, issueDescription: event.target.value })}
+            placeholder="Mô tả vấn đề khách hàng hoặc kỹ thuật viên ghi nhận..."
+            rows={5}
+            maxLength={1000}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            required
+          />
+          <p className="mt-1 text-xs text-slate-500">Tối đa 1000 ký tự theo API.</p>
+        </div>
+
+        <div className="flex gap-3 border-t border-slate-200 pt-5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60"
+          >
+            {isSubmitting ? "Đang tạo..." : "Tạo ticket"}
+          </button>
+        </div>
+      </form>
+    </SidePanel>
+  );
+}
+
+function DetailRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="text-xs font-medium text-slate-700 block mb-1.5">{label}</label>
+      <div className="text-xs text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded">{children}</div>
+    </div>
+  );
+}
+
+function LogItem({ log }: { log: MaintenanceLog }) {
+  return (
+    <div className="p-3 bg-slate-50 rounded-lg text-sm">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <p className="font-medium text-slate-900">Cập nhật lúc {formatDateTime(log.createdAt)}</p>
+      </div>
+      <p className="text-xs text-slate-600">{log.description || "Không có nội dung."}</p>
     </div>
   );
 }

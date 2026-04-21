@@ -1,31 +1,9 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Search, Filter, Shield, AlertCircle, CheckCircle, Calendar, X } from 'lucide-react';
 import { Pagination } from './pagination';
-
-interface WarrantyProduct {
-  id: string;
-  productName: string;
-  productId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  purchaseDate: string;
-  warrantyEndDate: string;
-  warrantyStatus: 'active' | 'expiring' | 'expired';
-  serviceCounts: number;
-  maxServiceAllowed: number;
-  issues: TechnicalIssue[];
-}
-
-interface TechnicalIssue {
-  issueId: string;
-  issueDate: string;
-  issueType: string;
-  description: string;
-  status: 'reported' | 'in-progress' | 'resolved';
-  resolutionDate?: string;
-  notes?: string;
-}
+import { can } from '@/config/permissions';
+import { useSession } from '@/hooks/use-session';
+import type { WarrantyProduct } from '@/types/warranty';
 
 const mockWarrantyProducts: WarrantyProduct[] = [
   {
@@ -137,6 +115,8 @@ const issueStatusConfig = {
 };
 
 export function WarrantyManagement() {
+  const session = useSession();
+  const role = session?.role;
   const [warranties, setWarranties] = useState<WarrantyProduct[]>(mockWarrantyProducts);
   const [selectedWarranty, setSelectedWarranty] = useState<WarrantyProduct | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -217,13 +197,15 @@ export function WarrantyManagement() {
           <div className="p-6 border-b border-slate-200 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900">Danh Sách Bảo Hành</h3>
-              <button
-                onClick={handleAddWarranty}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <Plus size={18} />
-                Thêm Bảo Hành
-              </button>
+              {can(role, "warranties", "create") && (
+                <button
+                  onClick={handleAddWarranty}
+                  className="px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Plus size={18} />
+                  Tạo Bảo Hành
+                </button>
+              )}
             </div>
 
             {/* Search and Filter */}

@@ -1,22 +1,13 @@
 import React, { useState } from 'react';
-import { FileText, Thermometer, Droplet, Clock, TrendingUp, Users } from 'lucide-react';
+import { FileText, Thermometer, Droplet, Clock, TrendingUp, Users, Plus } from 'lucide-react';
 import { CreateTemplateModal } from './create-template-modal';
 import { UpdateTemplateModal } from './update-template-modal';
+import { ResourceActionsMenu } from './resource-actions-menu';
+import { can } from '@/config/permissions';
+import { useSession } from '@/hooks/use-session';
+import type { HatchingTemplate } from '@/types/hatching';
 
-interface Template {
-  id: string;
-  name: string;
-  icon: string;
-  temperature: string;
-  humidity: string;
-  duration: string;
-  turnCycle: string;
-  users: number;
-  sessions: number;
-  successRate: number;
-}
-
-const mockTemplates: Template[] = [
+const mockTemplates: HatchingTemplate[] = [
   {
     id: 'T001',
     name: 'Trứng Gà',
@@ -80,16 +71,18 @@ const mockTemplates: Template[] = [
 ];
 
 export function TemplateManagement() {
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const session = useSession();
+  const role = session?.role;
+  const [selectedTemplate, setSelectedTemplate] = useState<HatchingTemplate | null>(null);
   const [isCreateTemplateModalOpen, setIsCreateTemplateModalOpen] = useState(false);
   const [isUpdateTemplateModalOpen, setIsUpdateTemplateModalOpen] = useState(false);
-  const [templates, setTemplates] = useState<Template[]>(mockTemplates);
+  const [templates, setTemplates] = useState<HatchingTemplate[]>(mockTemplates);
 
-  const handleCreateTemplate = (newTemplate: Template) => {
+  const handleCreateTemplate = (newTemplate: HatchingTemplate) => {
     setTemplates([...templates, newTemplate]);
   };
 
-  const handleUpdateTemplate = (updatedTemplate: Template) => {
+  const handleUpdateTemplate = (updatedTemplate: HatchingTemplate) => {
     setTemplates(templates.map(template => template.id === updatedTemplate.id ? updatedTemplate : template));
   };
 
@@ -97,13 +90,15 @@ export function TemplateManagement() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-800">Quản Lý Template Ấp Trứng</h2>
-        <button 
-          onClick={() => setIsCreateTemplateModalOpen(true)}
-          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <FileText size={16} />
-          Tạo Template
-        </button>
+        {can(role, "templates", "create") && (
+          <button 
+            onClick={() => setIsCreateTemplateModalOpen(true)}
+            className="px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+          >
+            <Plus size={18} />
+            Tạo Template
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -131,6 +126,14 @@ export function TemplateManagement() {
                     </div>
                   </div>
                   <div className="text-right">
+                    <ResourceActionsMenu
+                      canEdit={can(role, "templates", "edit")}
+                      canDelete={can(role, "templates", "delete")}
+                      onEdit={() => {
+                        setSelectedTemplate(template);
+                        setIsUpdateTemplateModalOpen(true);
+                      }}
+                    />
                     <div className="flex items-center gap-1 text-green-600 mb-0.5">
                       <TrendingUp size={14} />
                       <span className="text-base font-bold">{template.successRate}%</span>

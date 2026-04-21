@@ -4,24 +4,10 @@ import { CreateOrderModal } from './create-order-modal';
 import { UpdateOrderModal } from './update-order-modal';
 import { UpdateProductModal } from './update-product-modal';
 import { Pagination } from './pagination';
-
-interface Product {
-  id: string;
-  name: string;
-  capacity: string;
-  stock: number;
-  price: number;
-}
-
-interface Order {
-  id: string;
-  customer: string;
-  product: string;
-  status: 'deposit' | 'shipping' | 'completed';
-  amount: number;
-  date: string;
-  qrCode: string;
-}
+import { ResourceActionsMenu } from './resource-actions-menu';
+import { can } from '@/config/permissions';
+import { useSession } from '@/hooks/use-session';
+import type { Product, SalesOrder } from '@/types/order';
 
 const mockProducts: Product[] = [
   { id: 'P001', name: 'Máy ấp trứng 50', capacity: '50 trứng', stock: 45, price: 3500000 },
@@ -277,23 +263,25 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 export function SalesOrders() {
+  const session = useSession();
+  const role = session?.role;
   const [activeTab, setActiveTab] = useState<'products' | 'orders'>('products');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isUpdateProductModalOpen, setIsUpdateProductModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [orders, setOrders] = useState(mockOrders);
   const [products, setProducts] = useState(mockProducts);
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 10;
 
-  const handleCreateOrder = (newOrder: Order) => {
+  const handleCreateOrder = (newOrder: SalesOrder) => {
     setOrders([...orders, newOrder]);
     setActiveTab('orders');
   };
 
-  const handleUpdateOrder = (updatedOrder: Order) => {
+  const handleUpdateOrder = (updatedOrder: SalesOrder) => {
     setOrders(orders.map(order => order.id === updatedOrder.id ? updatedOrder : order));
     setIsUpdateModalOpen(false);
     setSelectedOrder(null);
@@ -305,7 +293,7 @@ export function SalesOrders() {
     setSelectedProduct(null);
   };
 
-  const openUpdateModal = (order: Order) => {
+  const openUpdateModal = (order: SalesOrder) => {
     setSelectedOrder(order);
     setIsUpdateModalOpen(true);
   };
@@ -325,13 +313,15 @@ export function SalesOrders() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">Quản Lý Bán Hàng</h2>
-        <button 
-          onClick={() => setIsCreateModalOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <Package size={18} />
-          Tạo Đơn Hàng Mới
-        </button>
+        {can(role, "orders", "edit") && (
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+          >
+            <Package size={18} />
+            Tạo Đơn Hàng
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -392,12 +382,13 @@ export function SalesOrders() {
                     </div>
                   </div>
 
-                  <button 
-                    onClick={() => openUpdateProductModal(product)}
-                    className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    Cập Nhật
-                  </button>
+                  <div className="mt-4 flex justify-end">
+                    <ResourceActionsMenu
+                      canEdit={can(role, "orders", "edit")}
+                      canDelete={can(role, "orders", "delete")}
+                      onEdit={() => openUpdateProductModal(product)}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -454,12 +445,11 @@ export function SalesOrders() {
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <button 
-                          onClick={() => openUpdateModal(order)}
-                          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          Cập Nhật
-                        </button>
+                        <ResourceActionsMenu
+                          canEdit={can(role, "orders", "edit")}
+                          canDelete={can(role, "orders", "delete")}
+                          onEdit={() => openUpdateModal(order)}
+                        />
                       </td>
                     </tr>
                   ))}
