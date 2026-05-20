@@ -6,7 +6,7 @@ const readEnv = (key: string, fallback = "") => {
 };
 
 const apiBaseUrl = trimTrailingSlash(
-  readEnv("VITE_API_BASE_URL", "http://localhost:8080/api"),
+  readEnv("VITE_API_BASE_URL", "https://api-incusmart.io.vn/api"),
 );
 
 const aiApiUrl = trimTrailingSlash(
