@@ -12,8 +12,9 @@ export interface Incubator {
   status: IncubatorStatus | string;
   createdAt: string;
   updatedAt: string | null;
-  qrCode: string;
+  serialNumber: string | null;
   modelId: string;
+  modelName: string | null;
   customerId: string | null;
   activatedAt: string | null;
 }

@@ -6,4 +6,5 @@ export interface IncubatorModel {
   modelCode: string;
   name: string;
   description: string | null;
+  unitPrice: number;
 }

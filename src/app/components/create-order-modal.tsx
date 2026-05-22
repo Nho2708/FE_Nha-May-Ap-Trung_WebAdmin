@@ -1,79 +1,86 @@
-import React, { useState } from 'react';
-import { X, ShoppingCart, Package, User, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ShoppingCart, Package, User, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { orderService } from '@/services/orders';
+import { incubatorModelService } from '@/services/incubatorModels';
+import type { OrderItemPayload } from '@/types/order';
+import type { IncubatorModel } from '@/types/incubator-model';
 
 interface CreateOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (order: any) => void;
+  onSubmit: () => void;
 }
-
-const products = [
-  { id: 'P001', name: 'Máy ấp trứng 50', capacity: '50 trứng', price: 3500000 },
-  { id: 'P002', name: 'Máy ấp trứng 100', capacity: '100 trứng', price: 5200000 },
-  { id: 'P003', name: 'Máy ấp trứng 200', capacity: '200 trứng', price: 8500000 },
-  { id: 'P004', name: 'Máy ấp trứng 500', capacity: '500 trứng', price: 18000000 },
-  { id: 'P005', name: 'Máy ấp trứng 1000', capacity: '1000 trứng', price: 32000000 },
-];
 
 export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModalProps) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    productId: '',
-    quantity: 1,
-    customerName: '',
-    email: '',
+  const [models, setModels] = useState<IncubatorModel[]>([]);
+  const [items, setItems] = useState<OrderItemPayload[]>([{ incubatorModelId: '', quantity: 1 }]);
+  const [customerInfo, setCustomerInfo] = useState({
+    fullName: '',
     phone: '',
+    email: '',
     address: '',
-    paymentMethod: 'deposit',
-    depositAmount: 0,
-    notes: '',
+    description: '',
+    verificationPass: '',
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectedProduct = products.find(p => p.id === formData.productId);
-  const totalAmount = selectedProduct ? selectedProduct.price * formData.quantity : 0;
-  const depositPercent = formData.paymentMethod === 'deposit' ? 30 : 100;
-  const depositAmount = (totalAmount * depositPercent) / 100;
+  useEffect(() => {
+    if (isOpen) {
+      incubatorModelService.list({ pageSize: 50 }).then((result) => setModels(result.items)).catch(() => {});
+    }
+  }, [isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      id: `ORD-2024-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-      customer: formData.customerName,
-      product: selectedProduct?.name,
-      status: formData.paymentMethod === 'full' ? 'shipping' : 'deposit',
-      amount: totalAmount,
-      date: new Date().toISOString().split('T')[0],
-      qrCode: `INC-2024-${Math.floor(Math.random() * 1000)}`,
-      ...formData
-    });
+  const handleClose = () => {
     onClose();
     setStep(1);
-    setFormData({
-      productId: '',
-      quantity: 1,
-      customerName: '',
-      email: '',
-      phone: '',
-      address: '',
-      paymentMethod: 'deposit',
-      depositAmount: 0,
-      notes: '',
-    });
+    setItems([{ incubatorModelId: '', quantity: 1 }]);
+    setCustomerInfo({ fullName: '', phone: '', email: '', address: '', description: '', verificationPass: '' });
+    setError(null);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const addItem = () => {
+    setItems([...items, { incubatorModelId: '', quantity: 1 }]);
   };
 
-  const nextStep = () => {
-    if (step === 1 && formData.productId) setStep(2);
-    else if (step === 2 && formData.customerName && formData.phone) setStep(3);
+  const removeItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
   };
 
-  const prevStep = () => setStep(step - 1);
+  const updateItem = (index: number, field: keyof OrderItemPayload, value: string | number) => {
+    setItems(items.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  };
+
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setCustomerInfo({ ...customerInfo, [e.target.name]: e.target.value });
+  };
+
+  const isStep1Valid = items.length > 0 && items.every((item) => item.incubatorModelId && item.quantity >= 1);
+  const isStep2Valid = customerInfo.fullName.trim() && customerInfo.phone.trim() && customerInfo.verificationPass.length >= 6;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await orderService.createByGuest({
+        fullName: customerInfo.fullName.trim(),
+        phone: customerInfo.phone.trim(),
+        email: customerInfo.email.trim() || undefined,
+        address: customerInfo.address.trim() || undefined,
+        description: customerInfo.description.trim() || undefined,
+        verificationPass: customerInfo.verificationPass,
+        items,
+      });
+      onSubmit();
+      handleClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể tạo đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -85,40 +92,32 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="text-lg font-bold">Tạo Đơn Hàng Mới</h2>
-              <p className="text-green-100 text-xs mt-0.5">Đơn hàng cho khách hàng</p>
+              <p className="text-green-100 text-xs mt-0.5">Đơn hàng cho khách vãng lai</p>
             </div>
-            <button
-              onClick={onClose}
-              className="hover:bg-white/20 rounded-lg p-1.5 transition-colors"
-            >
+            <button onClick={handleClose} className="hover:bg-white/20 rounded-lg p-1.5 transition-colors">
               <X size={20} />
             </button>
           </div>
 
-          {/* Progress Steps */}
+          {/* Steps */}
           <div className="flex items-center justify-between">
             {[
               { num: 1, label: 'Sản phẩm', icon: Package },
               { num: 2, label: 'Khách hàng', icon: User },
-              { num: 3, label: 'Thanh toán', icon: CreditCard },
             ].map((s, index) => {
               const Icon = s.icon;
               return (
                 <div key={s.num} className="flex items-center flex-1">
                   <div className="flex flex-col items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold transition-all ${
-                      step >= s.num 
-                        ? 'bg-white text-green-600' 
-                        : 'bg-green-500 text-white'
+                      step >= s.num ? 'bg-white text-green-600' : 'bg-green-500 text-white'
                     }`}>
                       <Icon size={16} />
                     </div>
                     <span className="text-xs mt-0.5 text-green-100">{s.label}</span>
                   </div>
-                  {index < 2 && (
-                    <div className={`flex-1 h-0.5 mx-2 rounded transition-all ${
-                      step > s.num ? 'bg-white' : 'bg-green-500'
-                    }`} />
+                  {index < 1 && (
+                    <div className={`flex-1 h-0.5 mx-2 rounded transition-all ${step > s.num ? 'bg-white' : 'bg-green-500'}`} />
                   )}
                 </div>
               );
@@ -126,85 +125,80 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4">
-          {/* Step 1: Product Selection */}
-          {step === 1 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-800 mb-2">
-                Chọn Sản Phẩm
-              </h3>
-
-              <div className="space-y-2">
-                {products.map((product) => (
-                  <label
-                    key={product.id}
-                    className={`block p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.productId === product.id
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-slate-200 hover:border-green-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="productId"
-                      value={product.id}
-                      checked={formData.productId === product.id}
-                      onChange={handleChange}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Package className={formData.productId === product.id ? 'text-green-600' : 'text-slate-400'} size={20} />
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800">{product.name}</p>
-                          <p className="text-xs text-slate-600">{product.capacity}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-green-600">
-                          {product.price.toLocaleString('vi-VN')} ₫
-                        </p>
-                      </div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Số Lượng
-                </label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  min="1"
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-
-              {selectedProduct && (
-                <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-700 font-medium">Tổng tiền:</span>
-                    <span className="text-lg font-bold text-green-600">
-                      {totalAmount.toLocaleString('vi-VN')} ₫
-                    </span>
-                  </div>
-                </div>
-              )}
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+              <AlertCircle size={14} />
+              {error}
             </div>
           )}
 
-          {/* Step 2: Customer Information */}
+          {/* Step 1: Products */}
+          {step === 1 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-800">Chọn Sản Phẩm</h3>
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  <Plus size={14} />
+                  Thêm sản phẩm
+                </button>
+              </div>
+
+              {items.map((item, index) => {
+                const model = models.find((m) => m.id === item.incubatorModelId);
+                return (
+                  <div key={index} className="flex items-end gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Dòng Máy <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={item.incubatorModelId}
+                        onChange={(e) => updateItem(index, 'incubatorModelId', e.target.value)}
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        required
+                      >
+                        <option value="">-- Chọn dòng máy --</option>
+                        {models.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.modelCode})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-24">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Số lượng</label>
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                        min="1"
+                        max="100"
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        required
+                      />
+                    </div>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(index)}
+                        className="p-1.5 text-red-400 hover:text-red-600 transition-colors mb-0.5"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Step 2: Customer Info */}
           {step === 2 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-800 mb-2">
-                Thông Tin Khách Hàng
-              </h3>
-
+              <h3 className="text-sm font-semibold text-slate-800">Thông Tin Khách Hàng</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1.5">
@@ -212,29 +206,14 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
                   </label>
                   <input
                     type="text"
-                    name="customerName"
-                    value={formData.customerName}
-                    onChange={handleChange}
+                    name="fullName"
+                    value={customerInfo.fullName}
+                    onChange={handleCustomerChange}
                     placeholder="Nguyễn Văn A"
                     className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     required
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="example@email.com"
-                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1.5">
                     Số Điện Thoại <span className="text-red-500">*</span>
@@ -242,147 +221,81 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
                   <input
                     type="tel"
                     name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
+                    value={customerInfo.phone}
+                    onChange={handleCustomerChange}
                     placeholder="0912345678"
                     className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     required
                   />
                 </div>
-
-                <div className="md:col-span-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={customerInfo.email}
+                    onChange={handleCustomerChange}
+                    placeholder="example@email.com"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                    Địa Chỉ Giao Hàng <span className="text-red-500">*</span>
+                    Mật Khẩu Xác Nhận <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="Nhập địa chỉ đầy đủ"
-                    rows={2}
+                  <input
+                    type="password"
+                    name="verificationPass"
+                    value={customerInfo.verificationPass}
+                    onChange={handleCustomerChange}
+                    placeholder="Tối thiểu 6 ký tự"
+                    minLength={6}
                     className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Địa Chỉ Giao Hàng</label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={customerInfo.address}
+                    onChange={handleCustomerChange}
+                    placeholder="Địa chỉ đầy đủ"
+                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Ghi Chú</label>
+                  <textarea
+                    name="description"
+                    value={customerInfo.description}
+                    onChange={handleCustomerChange}
+                    placeholder="Ghi chú thêm..."
+                    rows={2}
+                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 3: Payment */}
-          {step === 3 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-slate-800 mb-2">
-                Thanh Toán
-              </h3>
-
-              <div className="bg-slate-50 rounded-lg p-3 space-y-1.5 border border-slate-200">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Sản phẩm:</span>
-                  <span className="font-medium text-slate-800">{selectedProduct?.name}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Số lượng:</span>
-                  <span className="font-medium text-slate-800">{formData.quantity}</span>
-                </div>
-                <div className="flex items-center justify-between pt-1.5 border-t border-slate-300">
-                  <span className="text-sm text-slate-700 font-medium">Tổng tiền:</span>
-                  <span className="text-base font-bold text-slate-800">
-                    {totalAmount.toLocaleString('vi-VN')} ₫
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Phương Thức Thanh Toán
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all hover:bg-slate-50">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="deposit"
-                      checked={formData.paymentMethod === 'deposit'}
-                      onChange={handleChange}
-                      className="mr-2"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-800">Đặt Cọc 30%</p>
-                      <p className="text-xs text-slate-600">
-                        Thanh toán: {((totalAmount * 30) / 100).toLocaleString('vi-VN')} ₫
-                      </p>
-                    </div>
-                  </label>
-
-                  <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all hover:bg-slate-50">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="full"
-                      checked={formData.paymentMethod === 'full'}
-                      onChange={handleChange}
-                      className="mr-2"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-800">Thanh Toán Toàn Bộ</p>
-                      <p className="text-xs text-slate-600">
-                        Thanh toán: {totalAmount.toLocaleString('vi-VN')} ₫
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-slate-700 font-medium">Số tiền cần thanh toán:</span>
-                  <span className="text-lg font-bold text-green-600">
-                    {depositAmount.toLocaleString('vi-VN')} ₫
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600">
-                  {formData.paymentMethod === 'deposit' 
-                    ? `Còn lại: ${(totalAmount - depositAmount).toLocaleString('vi-VN')} ₫ thanh toán khi giao hàng`
-                    : 'Đã bao gồm toàn bộ chi phí'}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Ghi Chú
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  placeholder="Ghi chú thêm về đơn hàng..."
-                  rows={2}
-                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-4 border-t border-slate-200 mt-4">
+          {/* Buttons */}
+          <div className="flex gap-2 pt-3 border-t border-slate-200">
             {step > 1 && (
               <button
                 type="button"
-                onClick={prevStep}
+                onClick={() => setStep(step - 1)}
                 className="px-4 py-2 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors font-medium"
               >
                 Quay Lại
               </button>
             )}
-            
-            {step < 3 ? (
+            {step < 2 ? (
               <button
                 type="button"
-                onClick={nextStep}
-                disabled={
-                  (step === 1 && !formData.productId) ||
-                  (step === 2 && (!formData.customerName || !formData.phone))
-                }
+                onClick={() => setStep(2)}
+                disabled={!isStep1Valid}
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm rounded-lg hover:from-green-700 hover:to-green-800 transition-colors font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Tiếp Theo
@@ -390,10 +303,11 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
             ) : (
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm rounded-lg hover:from-green-700 hover:to-green-800 transition-colors font-medium shadow-lg flex items-center justify-center gap-2"
+                disabled={loading || !isStep2Valid}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white text-sm rounded-lg hover:from-green-700 hover:to-green-800 transition-colors font-medium shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <ShoppingCart size={16} />
-                Tạo Đơn Hàng
+                {loading ? 'Đang tạo...' : 'Tạo Đơn Hàng'}
               </button>
             )}
           </div>

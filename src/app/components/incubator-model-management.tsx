@@ -32,6 +32,7 @@ export interface CreateIncubatorModelPayload {
   modelCode: string;
   name: string;
   description?: string;
+  unitPrice: number;
   configs: ModelConfigItem[];
 }
 
@@ -39,6 +40,7 @@ export interface UpdateIncubatorModelPayload {
   modelCode?: string;
   name?: string;
   description?: string;
+  unitPrice?: number;
   configs?: ModelConfigItem[];
 }
 
@@ -555,11 +557,14 @@ export function IncubatorModelManagement() {
             <div className="space-y-4">
               <div className="border-b border-slate-200 pb-4">
                 <h3 className="text-lg font-semibold text-slate-800 mb-1">Chi Tiết Dòng Máy</h3>
-                <p className="text-xs text-slate-500 font-mono">{selectedModel.id}</p>
+                <p className="text-xs text-slate-500 font-mono">{selectedModel.modelCode}</p>
               </div>
               <DetailRow label="Mã dòng máy">{selectedModel.modelCode}</DetailRow>
               <DetailRow label="Tên">{selectedModel.name}</DetailRow>
               <DetailRow label="Mô tả">{selectedModel.description || "Không có mô tả"}</DetailRow>
+              <DetailRow label="Giá bán">
+                {selectedModel.unitPrice.toLocaleString("vi-VN")} ₫
+              </DetailRow>
               <DetailRow label="Ngày tạo">{formatDateTime(selectedModel.createdAt)}</DetailRow>
               <DetailRow label="Cập nhật gần nhất">{formatDateTime(selectedModel.updatedAt)}</DetailRow>
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4">
@@ -613,6 +618,7 @@ function CreateModelPanel({
   const [modelCode, setModelCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [unitPrice, setUnitPrice] = useState<number | "">("");
   const [configs, setConfigs] = useState<ModelConfigItem[]>([]);
 
   useEffect(() => {
@@ -620,6 +626,7 @@ function CreateModelPanel({
       setModelCode("");
       setName("");
       setDescription("");
+      setUnitPrice("");
       setConfigs([]);
     }
   }, [isOpen]);
@@ -630,6 +637,7 @@ function CreateModelPanel({
       modelCode: modelCode.trim(),
       name: name.trim(),
       description: description.trim() || undefined,
+      unitPrice: Number(unitPrice),
       configs,
     });
   };
@@ -682,6 +690,19 @@ function CreateModelPanel({
           />
         </div>
 
+        <div>
+          <RequiredLabel>Giá bán (VNĐ)</RequiredLabel>
+          <input
+            type="number"
+            value={unitPrice}
+            onChange={(e) => setUnitPrice(e.target.value ? Number(e.target.value) : "")}
+            placeholder="VD: 5000000"
+            min={1}
+            required
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         <div className="border-t border-slate-200" />
 
         <ConfigsSection items={configs} onChange={setConfigs} />
@@ -723,6 +744,7 @@ function EditModelPanel({
   const [modelCode, setModelCode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [unitPrice, setUnitPrice] = useState<number | "">("");
   const [configs, setConfigs] = useState<ModelConfigItem[]>([]);
 
   useEffect(() => {
@@ -730,6 +752,7 @@ function EditModelPanel({
       setModelCode(model.modelCode);
       setName(model.name);
       setDescription(model.description ?? "");
+      setUnitPrice(model.unitPrice ?? "");
       setConfigs([]);
     }
   }, [model]);
@@ -740,6 +763,7 @@ function EditModelPanel({
       modelCode: modelCode.trim() || undefined,
       name: name.trim() || undefined,
       description: description.trim() || undefined,
+      unitPrice: unitPrice !== "" ? Number(unitPrice) : undefined,
       configs: configs.length > 0 ? configs : undefined,
     });
   };
@@ -784,6 +808,18 @@ function EditModelPanel({
             maxLength={255}
             rows={2}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+        </div>
+
+        <div>
+          <RequiredLabel>Giá bán (VNĐ)</RequiredLabel>
+          <input
+            type="number"
+            value={unitPrice}
+            onChange={(e) => setUnitPrice(e.target.value ? Number(e.target.value) : "")}
+            min={1}
+            required
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 

@@ -22,6 +22,8 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: "CUSTOMER", label: "Khách hàng" },
 ];
 
+const CREATABLE_ROLE_OPTIONS = ROLE_OPTIONS.filter((o) => o.value !== "ADMIN");
+
 const STATUS_OPTIONS: { value: UserStatus; label: string }[] = [
   { value: "ACTIVE", label: "Hoạt động" },
   { value: "DEACTIVE", label: "Ngưng hoạt động" },
@@ -454,7 +456,7 @@ function AddUserModal({
               onChange={(event) => setFormData({ ...formData, role: event.target.value as UserRole })}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {ROLE_OPTIONS.map((option) => (
+              {CREATABLE_ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -564,7 +566,7 @@ function EditUserModal({
               onChange={(event) => setFormData({ ...formData, role: event.target.value as UserRole })}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {ROLE_OPTIONS.map((option) => (
+              {CREATABLE_ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

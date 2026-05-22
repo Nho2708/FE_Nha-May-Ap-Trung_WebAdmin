@@ -9,7 +9,7 @@ import { incubatorModelService } from "@/services/incubatorModels";
 import { incubatorService } from "@/services/incubators";
 import type { IncubatorModel } from "@/types/incubator-model";
 import type { CreateIncubatorPayload, Incubator, IncubatorStatus } from "@/types/incubator";
-import { formatDateTime, formatEnumLabel, formatShortId } from "@/utils/format";
+import { formatDateTime, formatEnumLabel } from "@/utils/format";
 
 const STATUS_OPTIONS: { value: IncubatorStatus | "all"; label: string }[] = [
   { value: "all", label: "Tất cả" },
@@ -55,7 +55,6 @@ export function DeviceManagement() {
   const session = useSession();
   const role = session?.role;
   const [incubators, setIncubators] = useState<Incubator[]>([]);
-  const [modelNameById, setModelNameById] = useState<Record<string, string>>({});
   const [selectedIncubator, setSelectedIncubator] = useState<Incubator | null>(null);
   const [statusFilter, setStatusFilter] = useState<IncubatorStatus | "all">("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,28 +82,6 @@ export function DeviceManagement() {
       setIncubators(result.items);
       setTotalItems(result.totalItems);
       setTotalPages(Math.max(1, result.totalPages));
-
-      const missingModelIds = Array.from(
-        new Set(result.items.map((item) => item.modelId).filter((id) => !modelNameById[id])),
-      );
-
-      if (missingModelIds.length > 0) {
-        const modelPairs = await Promise.all(
-          missingModelIds.map(async (modelId) => {
-            try {
-              const model = await incubatorModelService.getById(modelId);
-              return [modelId, `${model.modelCode} - ${model.name}`] as const;
-            } catch {
-              return [modelId, formatShortId(modelId)] as const;
-            }
-          }),
-        );
-
-        setModelNameById((current) => ({
-          ...current,
-          ...Object.fromEntries(modelPairs),
-        }));
-      }
 
       if (result.items.length === 0) {
         setSelectedIncubator(null);
@@ -212,7 +189,10 @@ export function DeviceManagement() {
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        Tên
+                        Serial
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Dòng máy
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Trạng thái
@@ -232,8 +212,11 @@ export function DeviceManagement() {
                         }`}
                         onClick={() => void loadDetail(incubator.id)}
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                          {modelNameById[incubator.modelId] || formatShortId(incubator.modelId)}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium text-slate-900">
+                          {incubator.serialNumber || "--"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                          {incubator.modelName || "--"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <StatusBadge status={incubator.status} />
@@ -280,11 +263,11 @@ export function DeviceManagement() {
             <div className="space-y-6">
               <div className="border-b border-slate-200 pb-4">
                 <h3 className="text-lg font-semibold text-slate-800 mb-2">Chi Tiết Máy Ấp</h3>
-                <p className="text-sm text-slate-600">{selectedIncubator.id}</p>
+                <p className="text-sm font-mono text-slate-600">{selectedIncubator.serialNumber || "--"}</p>
               </div>
 
-              <DetailRow label="QR Code">{selectedIncubator.qrCode || "--"}</DetailRow>
-              <DetailRow label="Model">{selectedIncubator.modelId}</DetailRow>
+              <DetailRow label="Serial">{selectedIncubator.serialNumber || "--"}</DetailRow>
+              <DetailRow label="Dòng máy">{selectedIncubator.modelName || "--"}</DetailRow>
               <DetailRow label="Khách hàng">{selectedIncubator.customerId || "Chưa gán khách hàng"}</DetailRow>
               <DetailRow label="Ngày kích hoạt">{formatDateTime(selectedIncubator.activatedAt)}</DetailRow>
               <DetailRow label="Ngày tạo">{formatDateTime(selectedIncubator.createdAt)}</DetailRow>
