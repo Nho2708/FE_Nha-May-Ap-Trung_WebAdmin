@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
-import { 
-  TrendingUp, 
-  Users, 
-  Settings, 
+import React, { useState, useEffect } from 'react';
+import {
+  TrendingUp,
+  Users,
+  Settings,
   AlertTriangle,
-  Calendar
+  Calendar,
+  Package,
+  Loader2
 } from 'lucide-react';
+import { incubatorService } from '@/services/incubators';
+import { orderService } from '@/services/orders';
+import { userService } from '@/services/users';
+import { maintenanceService } from '@/services/maintenance';
 import {
   LineChart,
   Line,
@@ -141,29 +147,27 @@ const filterOptions = [
   { value: '12M', label: '1 Năm' },
 ];
 
-const KPICard = ({ 
-  title, 
-  value, 
-  icon: Icon, 
-  color, 
-  trend 
-}: { 
-  title: string; 
-  value: string | number; 
-  icon: any; 
-  color: string; 
-  trend?: string;
+const KPICard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  loading,
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  color: string;
+  loading?: boolean;
 }) => (
   <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 hover:shadow transition-shadow">
     <div className="flex items-start justify-between">
       <div className="flex-1">
         <p className="text-xs text-slate-600 mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
-        {trend && (
-          <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
-            <TrendingUp size={12} />
-            {trend}
-          </p>
+        {loading ? (
+          <Loader2 size={20} className="animate-spin text-slate-400 mt-1" />
+        ) : (
+          <h3 className="text-2xl font-bold text-slate-800">{value}</h3>
         )}
       </div>
       <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center flex-shrink-0 ml-2`}>
@@ -175,6 +179,36 @@ const KPICard = ({
 
 export function AdminDashboard() {
   const [timeFilter, setTimeFilter] = useState('6M');
+  const [kpi, setKpi] = useState({
+    totalIncubators: 0,
+    totalOrders: 0,
+    activeUsers: 0,
+    inMaintenance: 0,
+  });
+  const [kpiLoading, setKpiLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchKpi = async () => {
+      setKpiLoading(true);
+      try {
+        const [incubators, orders, users, maintenance] = await Promise.allSettled([
+          incubatorService.list({ pageSize: 1 }),
+          orderService.list({ pageSize: 1 }),
+          userService.list({ status: 'ACTIVE', pageSize: 1 }),
+          incubatorService.list({ status: 'IN_MAINTENANCE', pageSize: 1 }),
+        ]);
+        setKpi({
+          totalIncubators: incubators.status === 'fulfilled' ? incubators.value.totalItems : 0,
+          totalOrders: orders.status === 'fulfilled' ? orders.value.totalItems : 0,
+          activeUsers: users.status === 'fulfilled' ? users.value.totalItems : 0,
+          inMaintenance: maintenance.status === 'fulfilled' ? maintenance.value.totalItems : 0,
+        });
+      } finally {
+        setKpiLoading(false);
+      }
+    };
+    void fetchKpi();
+  }, []);
 
   const getRevenueData = () => {
     switch(timeFilter) {
@@ -250,58 +284,61 @@ export function AdminDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Tổng Máy Đã Bán"
-          value="335"
+          title="Tổng Máy Ấp"
+          value={kpiLoading ? '...' : kpi.totalIncubators}
           icon={Settings}
           color="bg-blue-500"
-          trend="+12% tháng này"
+          loading={kpiLoading}
         />
         <KPICard
-          title="Tổng Doanh Thu"
-          value="328M"
-          icon={TrendingUp}
+          title="Tổng Đơn Hàng"
+          value={kpiLoading ? '...' : kpi.totalOrders}
+          icon={Package}
           color="bg-green-500"
-          trend="+18% tháng này"
+          loading={kpiLoading}
         />
         <KPICard
           title="User Hoạt Động"
-          value="248"
+          value={kpiLoading ? '...' : kpi.activeUsers}
           icon={Users}
           color="bg-purple-500"
-          trend="+8% tháng này"
+          loading={kpiLoading}
         />
         <KPICard
-          title="Thiết Bị Lỗi"
-          value="12"
+          title="Đang Bảo Trì"
+          value={kpiLoading ? '...' : kpi.inMaintenance}
           icon={AlertTriangle}
           color="bg-red-500"
+          loading={kpiLoading}
         />
       </div>
 
-      {/* AI Insight Panel */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-sm border border-blue-200 p-4">
-        <h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
-          <span>🤖</span>
-          AI Insights
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div className="bg-white rounded-lg p-3 border border-blue-100">
-            <p className="text-xs text-slate-700">
-              ✅ 98.5% thiết bị online
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-3 border border-amber-100">
-            <p className="text-xs text-slate-700">
-              ⚠️ 3 máy nhiệt độ bất thường
-            </p>
-          </div>
-          <div className="bg-white rounded-lg p-3 border border-green-100">
-            <p className="text-xs text-slate-700">
-              📈 Tỉ lệ nở tăng 2.5%
-            </p>
+      {/* Summary insights from real data */}
+      {!kpiLoading && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-sm border border-blue-200 p-4">
+          <h3 className="text-sm font-semibold text-slate-800 mb-2 flex items-center gap-2">
+            <span>📊</span>
+            Tổng Quan Hệ Thống
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="bg-white rounded-lg p-3 border border-blue-100">
+              <p className="text-xs text-slate-700">
+                🖥️ {kpi.totalIncubators} máy ấp trong hệ thống
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-amber-100">
+              <p className="text-xs text-slate-700">
+                🔧 {kpi.inMaintenance} máy đang bảo trì
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-green-100">
+              <p className="text-xs text-slate-700">
+                👥 {kpi.activeUsers} người dùng đang hoạt động
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

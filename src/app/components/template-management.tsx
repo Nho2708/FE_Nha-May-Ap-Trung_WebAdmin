@@ -1,199 +1,221 @@
-import React, { useState } from 'react';
-import { FileText, Thermometer, Droplet, Clock, TrendingUp, Users } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FileText, Clock, Plus, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
 import { CreateTemplateModal } from './create-template-modal';
 import { UpdateTemplateModal } from './update-template-modal';
+import { ResourceActionsMenu } from './resource-actions-menu';
+import { Pagination } from './pagination';
+import { can } from '@/config/permissions';
+import { useSession } from '@/hooks/use-session';
+import { hatchingSeasonTemplateService } from '@/services/hatchingSeasonTemplates';
+import type { HatchingSeasonTemplate } from '@/types/hatching';
 
-interface Template {
-  id: string;
-  name: string;
-  icon: string;
-  temperature: string;
-  humidity: string;
-  duration: string;
-  turnCycle: string;
-  users: number;
-  sessions: number;
-  successRate: number;
-}
+const EGG_TYPE_ICONS: Record<string, string> = {
+  'Gà': '🐔',
+  'Vịt': '🦆',
+  'Ngỗng': '🦢',
+  'Chim': '🐦',
+  'Đà điểu': '🦤',
+};
 
-const mockTemplates: Template[] = [
-  {
-    id: 'T001',
-    name: 'Trứng Gà',
-    icon: '🐔',
-    temperature: '37.5-38°C',
-    humidity: '55-65%',
-    duration: '21 ngày',
-    turnCycle: '2 giờ',
-    users: 156,
-    sessions: 324,
-    successRate: 92
-  },
-  {
-    id: 'T002',
-    name: 'Trứng Vịt',
-    icon: '🦆',
-    temperature: '37-37.5°C',
-    humidity: '58-62%',
-    duration: '28 ngày',
-    turnCycle: '2 giờ',
-    users: 89,
-    sessions: 178,
-    successRate: 88
-  },
-  {
-    id: 'T003',
-    name: 'Trứng Ngỗng',
-    icon: '🦢',
-    temperature: '37.5-38°C',
-    humidity: '60-65%',
-    duration: '28-30 ngày',
-    turnCycle: '3 giờ',
-    users: 42,
-    sessions: 95,
-    successRate: 85
-  },
-  {
-    id: 'T004',
-    name: 'Trứng Chim',
-    icon: '🐦',
-    temperature: '37-37.5°C',
-    humidity: '50-55%',
-    duration: '14-18 ngày',
-    turnCycle: '1.5 giờ',
-    users: 28,
-    sessions: 67,
-    successRate: 78
-  },
-  {
-    id: 'T005',
-    name: 'Trứng Đà Điểu',
-    icon: '🦤',
-    temperature: '36-36.5°C',
-    humidity: '25-30%',
-    duration: '42-45 ngày',
-    turnCycle: '4 giờ',
-    users: 15,
-    sessions: 32,
-    successRate: 80
-  },
-];
+const getEggIcon = (eggType: string | null) => EGG_TYPE_ICONS[eggType ?? ''] ?? '🥚';
 
 export function TemplateManagement() {
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [isCreateTemplateModalOpen, setIsCreateTemplateModalOpen] = useState(false);
-  const [isUpdateTemplateModalOpen, setIsUpdateTemplateModalOpen] = useState(false);
-  const [templates, setTemplates] = useState<Template[]>(mockTemplates);
+  const session = useSession();
+  const role = session?.role;
 
-  const handleCreateTemplate = (newTemplate: Template) => {
-    setTemplates([...templates, newTemplate]);
+  const [templates, setTemplates] = useState<HatchingSeasonTemplate[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [selectedTemplate, setSelectedTemplate] = useState<HatchingSeasonTemplate | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
+  const pageSize = 10;
+
+  const fetchTemplates = useCallback(async (page = 1) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await hatchingSeasonTemplateService.list({ page, pageSize });
+      setTemplates(result.items);
+      setTotalItems(result.totalItems);
+      setTotalPages(result.totalPages);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể tải danh sách template');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTemplates(currentPage);
+  }, [fetchTemplates, currentPage]);
+
+  const handleCreated = () => {
+    fetchTemplates(1);
+    setCurrentPage(1);
   };
 
-  const handleUpdateTemplate = (updatedTemplate: Template) => {
-    setTemplates(templates.map(template => template.id === updatedTemplate.id ? updatedTemplate : template));
+  const handleUpdated = () => {
+    fetchTemplates(currentPage);
+    setIsUpdateModalOpen(false);
+    setSelectedTemplate(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await hatchingSeasonTemplateService.delete(id);
+      if (selectedTemplate?.id === id) setSelectedTemplate(null);
+      fetchTemplates(currentPage);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể xóa template');
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-slate-800">Quản Lý Template Ấp Trứng</h2>
-        <button 
-          onClick={() => setIsCreateTemplateModalOpen(true)}
-          className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          <FileText size={16} />
-          Tạo Template
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchTemplates(currentPage)}
+            className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            title="Làm mới"
+          >
+            <RefreshCw size={16} />
+          </button>
+          {can(role, "templates", "create") && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <Plus size={16} />
+              Tạo Template
+            </button>
+          )}
+        </div>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <AlertCircle size={16} />
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Template List */}
         <div className="lg:col-span-2 space-y-3">
-          {templates.map((template) => (
-            <div
-              key={template.id}
-              onClick={() => setSelectedTemplate(template)}
-              className={`bg-white rounded-lg shadow-sm border-2 transition-all cursor-pointer hover:shadow ${
-                selectedTemplate?.id === template.id
-                  ? 'border-blue-500 shadow'
-                  : 'border-slate-200'
-              }`}
-            >
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-3xl">{template.icon}</span>
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-800">
-                        {template.name}
-                      </h3>
-                      <p className="text-xs text-slate-600">{template.id}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-1 text-green-600 mb-0.5">
-                      <TrendingUp size={14} />
-                      <span className="text-base font-bold">{template.successRate}%</span>
-                    </div>
-                    <p className="text-xs text-slate-600">Thành công</p>
-                  </div>
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-lg border border-slate-200 p-4 animate-pulse">
+                  <div className="h-4 bg-slate-200 rounded w-1/3 mb-3" />
+                  <div className="h-3 bg-slate-100 rounded w-2/3" />
                 </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                  <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-2">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <Thermometer size={12} className="text-red-600" />
-                      <span className="text-xs text-slate-700">Nhiệt độ</span>
+              ))}
+            </div>
+          ) : templates.length === 0 ? (
+            <div className="bg-white rounded-lg border border-slate-200 p-8 text-center">
+              <FileText size={32} className="mx-auto text-slate-300 mb-2" />
+              <p className="text-sm text-slate-500">Chưa có template nào</p>
+            </div>
+          ) : (
+            templates.map((template) => (
+              <div
+                key={template.id}
+                onClick={() => setSelectedTemplate(template)}
+                className={`bg-white rounded-lg shadow-sm border-2 transition-all cursor-pointer hover:shadow ${
+                  selectedTemplate?.id === template.id
+                    ? 'border-blue-500 shadow'
+                    : 'border-slate-200'
+                }`}
+              >
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-3xl">{getEggIcon(template.eggType)}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-semibold text-slate-800">{template.name}</h3>
+                          {!template.isActive && (
+                            <span className="px-1.5 py-0.5 text-xs bg-slate-100 text-slate-500 rounded">
+                              Tắt
+                            </span>
+                          )}
+                        </div>
+                        {template.eggType && (
+                          <p className="text-xs text-slate-600">Loại: {template.eggType}</p>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs font-semibold text-slate-800">
-                      {template.temperature}
-                    </p>
+                    <ResourceActionsMenu
+                      canEdit={can(role, "templates", "edit")}
+                      canDelete={can(role, "templates", "delete")}
+                      onEdit={() => {
+                        setSelectedTemplate(template);
+                        setIsUpdateModalOpen(true);
+                      }}
+                      onDelete={() => handleDelete(template.id)}
+                    />
                   </div>
 
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <Droplet size={12} className="text-blue-600" />
-                      <span className="text-xs text-slate-700">Độ ẩm</span>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-2">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Clock size={12} className="text-purple-600" />
+                        <span className="text-xs text-slate-700">Tổng ngày</span>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-800">{template.totalDays} ngày</p>
                     </div>
-                    <p className="text-xs font-semibold text-slate-800">
-                      {template.humidity}
-                    </p>
-                  </div>
 
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-2">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <Clock size={12} className="text-purple-600" />
-                      <span className="text-xs text-slate-700">Thời gian</span>
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <FileText size={12} className="text-blue-600" />
+                        <span className="text-xs text-slate-700">Tạo bởi</span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-800">
+                        {template.createdByType === 'TECHNICIAN' ? 'Kỹ thuật viên' : 'Khách hàng'}
+                      </p>
                     </div>
-                    <p className="text-xs font-semibold text-slate-800">
-                      {template.duration}
-                    </p>
-                  </div>
 
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-2">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <Clock size={12} className="text-green-600" />
-                      <span className="text-xs text-slate-700">Đảo trứng</span>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-2">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-xs text-green-600">●</span>
+                        <span className="text-xs text-slate-700">Trạng thái</span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-800">
+                        {template.isActive ? 'Đang dùng' : 'Không dùng'}
+                      </p>
                     </div>
-                    <p className="text-xs font-semibold text-slate-800">
-                      {template.turnCycle}
-                    </p>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-4 text-xs text-slate-600">
-                  <div className="flex items-center gap-1.5">
-                    <Users size={14} />
-                    <span>{template.users} người dùng</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <FileText size={14} />
-                    <span>{template.sessions} vụ ấp</span>
+                  {template.description && (
+                    <p className="text-xs text-slate-500 truncate">{template.description}</p>
+                  )}
+
+                  <div className="flex items-center justify-end mt-1 text-blue-500 text-xs gap-1">
+                    <span>Xem chi tiết</span>
+                    <ChevronRight size={12} />
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
+
+          {totalPages > 1 && (
+            <Pagination
+              totalItems={totalItems}
+              itemsPerPage={pageSize}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
 
         {/* Template Details */}
@@ -201,86 +223,54 @@ export function TemplateManagement() {
           {selectedTemplate ? (
             <div className="space-y-4">
               <div className="text-center pb-3 border-b border-slate-200">
-                <span className="text-5xl mb-2 block">{selectedTemplate.icon}</span>
-                <h3 className="text-base font-semibold text-slate-800">
-                  {selectedTemplate.name}
-                </h3>
-                <p className="text-xs text-slate-600 mt-0.5">ID: {selectedTemplate.id}</p>
+                <span className="text-5xl mb-2 block">{getEggIcon(selectedTemplate.eggType)}</span>
+                <h3 className="text-base font-semibold text-slate-800">{selectedTemplate.name}</h3>
+                {selectedTemplate.eggType && (
+                  <p className="text-xs text-slate-600 mt-0.5">{selectedTemplate.eggType}</p>
+                )}
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-700 mb-2">
-                    Thông Số Kỹ Thuật
-                  </h4>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
-                      <span className="text-slate-600">Nhiệt độ:</span>
-                      <span className="font-semibold text-slate-800">
-                        {selectedTemplate.temperature}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
-                      <span className="text-slate-600">Độ ẩm:</span>
-                      <span className="font-semibold text-slate-800">
-                        {selectedTemplate.humidity}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
-                      <span className="text-slate-600">Thời gian ấp:</span>
-                      <span className="font-semibold text-slate-800">
-                        {selectedTemplate.duration}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
-                      <span className="text-slate-600">Chu kỳ đảo:</span>
-                      <span className="font-semibold text-slate-800">
-                        {selectedTemplate.turnCycle}
-                      </span>
-                    </div>
-                  </div>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
+                  <span className="text-slate-600">Tổng ngày ấp:</span>
+                  <span className="font-semibold text-slate-800">{selectedTemplate.totalDays} ngày</span>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-semibold text-slate-700 mb-2">
-                    Thống Kê Sử Dụng
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-2.5">
-                      <p className="text-xs text-slate-700 mb-0.5">Người dùng</p>
-                      <p className="text-xl font-bold text-blue-600">
-                        {selectedTemplate.users}
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-2.5">
-                      <p className="text-xs text-slate-700 mb-0.5">Số vụ ấp</p>
-                      <p className="text-xl font-bold text-purple-600">
-                        {selectedTemplate.sessions}
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-2.5">
-                      <p className="text-xs text-slate-700 mb-0.5">Tỉ lệ thành công</p>
-                      <p className="text-xl font-bold text-green-600">
-                        {selectedTemplate.successRate}%
-                      </p>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
+                  <span className="text-slate-600">Tạo bởi:</span>
+                  <span className="font-semibold text-slate-800">
+                    {selectedTemplate.createdByType === 'TECHNICIAN' ? 'Kỹ thuật viên' : 'Khách hàng'}
+                  </span>
                 </div>
+                <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
+                  <span className="text-slate-600">Trạng thái:</span>
+                  <span className={`font-semibold ${selectedTemplate.isActive ? 'text-green-600' : 'text-slate-400'}`}>
+                    {selectedTemplate.isActive ? 'Đang hoạt động' : 'Không hoạt động'}
+                  </span>
+                </div>
+                {selectedTemplate.description && (
+                  <div className="p-2 bg-slate-50 rounded text-xs">
+                    <p className="text-slate-600 mb-1">Mô tả:</p>
+                    <p className="text-slate-800">{selectedTemplate.description}</p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
+                  <span className="text-slate-600">Ngày tạo:</span>
+                  <span className="font-semibold text-slate-800">
+                    {new Date(selectedTemplate.createdAt).toLocaleDateString('vi-VN')}
+                  </span>
+                </div>
+              </div>
 
+              {can(role, "templates", "edit") && (
                 <div className="pt-3 space-y-2">
                   <button
-                    onClick={() => {
-                      setIsUpdateTemplateModalOpen(true);
-                    }}
+                    onClick={() => setIsUpdateModalOpen(true)}
                     className="w-full px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Chỉnh Sửa
                   </button>
-                  <button className="w-full px-3 py-1.5 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors">
-                    Sao Chép
-                  </button>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -291,18 +281,19 @@ export function TemplateManagement() {
         </div>
       </div>
 
-      {/* Create Template Modal */}
       <CreateTemplateModal
-        isOpen={isCreateTemplateModalOpen}
-        onClose={() => setIsCreateTemplateModalOpen(false)}
-        onSubmit={handleCreateTemplate}
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreated}
       />
 
-      {/* Update Template Modal */}
       <UpdateTemplateModal
-        isOpen={isUpdateTemplateModalOpen}
-        onClose={() => setIsUpdateTemplateModalOpen(false)}
-        onSubmit={handleUpdateTemplate}
+        isOpen={isUpdateModalOpen}
+        onClose={() => {
+          setIsUpdateModalOpen(false);
+          setSelectedTemplate(null);
+        }}
+        onSubmit={handleUpdated}
         template={selectedTemplate}
       />
     </div>
