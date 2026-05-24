@@ -1,562 +1,431 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, Shield, AlertCircle, CheckCircle, Calendar, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Shield, AlertCircle, CheckCircle, Calendar, RefreshCw, Plus, Edit2, Loader2 } from 'lucide-react';
 import { Pagination } from './pagination';
+import { can } from '@/config/permissions';
+import { useSession } from '@/hooks/use-session';
+import { incubatorService } from '@/services/incubators';
+import { warrantyService } from '@/services/warranties';
+import type { Incubator, IncubatorStatus } from '@/types/incubator';
+import type { WarrantySummary } from '@/types/maintenance';
 
-interface WarrantyProduct {
-  id: string;
-  productName: string;
-  productId: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  purchaseDate: string;
-  warrantyEndDate: string;
-  warrantyStatus: 'active' | 'expiring' | 'expired';
-  serviceCounts: number;
-  maxServiceAllowed: number;
-  issues: TechnicalIssue[];
-}
-
-interface TechnicalIssue {
-  issueId: string;
-  issueDate: string;
-  issueType: string;
-  description: string;
-  status: 'reported' | 'in-progress' | 'resolved';
-  resolutionDate?: string;
-  notes?: string;
-}
-
-const mockWarrantyProducts: WarrantyProduct[] = [
-  {
-    id: 'WRT-2024-001',
-    productName: 'Máy Ấp Trứng 1000 Trứng',
-    productId: 'INC-2024-045',
-    customerName: 'Nguyễn Văn A',
-    customerEmail: 'nva@example.com',
-    customerPhone: '0912345678',
-    purchaseDate: '2023-12-15',
-    warrantyEndDate: '2024-12-15',
-    warrantyStatus: 'expiring',
-    serviceCounts: 1,
-    maxServiceAllowed: 3,
-    issues: [
-      {
-        issueId: 'ISS-001',
-        issueDate: '2024-01-08',
-        issueType: 'Nhiệt độ',
-        description: 'Máy không gia nhiệt đều',
-        status: 'resolved',
-        resolutionDate: '2024-01-09',
-        notes: 'Thay cảm biến nhiệt độ'
-      }
-    ]
-  },
-  {
-    id: 'WRT-2024-002',
-    productName: 'Máy Ấp Trứng 500 Trứng',
-    productId: 'INC-2024-032',
-    customerName: 'Trần Thị B',
-    customerEmail: 'ttb@example.com',
-    customerPhone: '0987654321',
-    purchaseDate: '2024-01-05',
-    warrantyEndDate: '2025-01-05',
-    warrantyStatus: 'active',
-    serviceCounts: 0,
-    maxServiceAllowed: 3,
-    issues: []
-  },
-  {
-    id: 'WRT-2024-003',
-    productName: 'Máy Ấp Trứng 2000 Trứng',
-    productId: 'INC-2024-087',
-    customerName: 'Phạm Văn C',
-    customerEmail: 'pvc@example.com',
-    customerPhone: '0912987654',
-    purchaseDate: '2023-01-20',
-    warrantyEndDate: '2024-01-20',
-    warrantyStatus: 'expired',
-    serviceCounts: 2,
-    maxServiceAllowed: 3,
-    issues: [
-      {
-        issueId: 'ISS-002',
-        issueDate: '2023-08-15',
-        issueType: 'Motor',
-        description: 'Motor đảo trứng không chạy',
-        status: 'resolved',
-        resolutionDate: '2023-08-20',
-        notes: 'Thay motor mới'
-      },
-      {
-        issueId: 'ISS-003',
-        issueDate: '2023-11-10',
-        issueType: 'Điện',
-        description: 'Cảnh báo quá điện áp',
-        status: 'resolved',
-        resolutionDate: '2023-11-12',
-        notes: 'Kiểm tra và hiệu chỉnh bảng điều khiển'
-      }
-    ]
-  },
-  {
-    id: 'WRT-2024-004',
-    productName: 'Máy Ấp Trứng 1500 Trứng',
-    productId: 'INC-2024-056',
-    customerName: 'Hoàng Thị D',
-    customerEmail: 'htd@example.com',
-    customerPhone: '0945678901',
-    purchaseDate: '2023-06-10',
-    warrantyEndDate: '2025-06-10',
-    warrantyStatus: 'active',
-    serviceCounts: 2,
-    maxServiceAllowed: 3,
-    issues: [
-      {
-        issueId: 'ISS-004',
-        issueDate: '2024-01-07',
-        issueType: 'Độ ẩm',
-        description: 'Cảm biến độ ẩm không chính xác',
-        status: 'in-progress',
-        notes: 'Đang chờ thay thế cảm biến'
-      }
-    ]
-  }
-];
-
-const statusConfig = {
-  active: { bg: 'bg-green-100', text: 'text-green-800', label: 'Còn Hiệu Lực', icon: CheckCircle },
-  expiring: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Sắp Hết', icon: AlertCircle },
-  expired: { bg: 'bg-red-100', text: 'text-red-800', label: 'Đã Hết', icon: AlertCircle }
+const WARRANTY_STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  ACTIVE: { label: 'Có hiệu lực', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  INACTIVE: { label: 'Không hiệu lực', color: 'bg-slate-100 text-slate-600', icon: Shield },
+  DELETED: { label: 'Đã xóa', color: 'bg-red-100 text-red-700', icon: AlertCircle },
 };
 
-const issueStatusConfig = {
-  reported: { label: 'Báo Cáo', color: 'bg-blue-100 text-blue-800' },
-  'in-progress': { label: 'Đang Xử Lý', color: 'bg-yellow-100 text-yellow-800' },
-  resolved: { label: 'Đã Giải Quyết', color: 'bg-green-100 text-green-800' }
+const INCUBATOR_STATUS_COLOR: Record<IncubatorStatus, string> = {
+  AVAILABLE: 'bg-green-100 text-green-800',
+  RESERVED: 'bg-blue-100 text-blue-800',
+  ACTIVE: 'bg-indigo-100 text-indigo-800',
+  REPLACEMENT_PENDING: 'bg-orange-100 text-orange-800',
+  IN_MAINTENANCE: 'bg-yellow-100 text-yellow-800',
+  DAMAGED: 'bg-red-100 text-red-800',
+  RETIRED: 'bg-slate-100 text-slate-600',
 };
+
+const INCUBATOR_STATUS_LABEL: Record<IncubatorStatus, string> = {
+  AVAILABLE: 'Sẵn sàng',
+  RESERVED: 'Đã đặt',
+  ACTIVE: 'Đang dùng',
+  REPLACEMENT_PENDING: 'Chờ thay',
+  IN_MAINTENANCE: 'Bảo trì',
+  DAMAGED: 'Hỏng',
+  RETIRED: 'Ngưng dùng',
+};
+
+interface WarrantyFormState {
+  startDate: string;
+  endDate: string;
+  notes: string;
+}
 
 export function WarrantyManagement() {
-  const [warranties, setWarranties] = useState<WarrantyProduct[]>(mockWarrantyProducts);
-  const [selectedWarranty, setSelectedWarranty] = useState<WarrantyProduct | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'expiring' | 'expired'>('all');
+  const session = useSession();
+  const role = session?.role;
+
+  const [incubators, setIncubators] = useState<Incubator[]>([]);
+  const [totalIncubators, setTotalIncubators] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const itemsPerPage = 10;
+  const [selectedIncubator, setSelectedIncubator] = useState<Incubator | null>(null);
+  const [warranty, setWarranty] = useState<WarrantySummary | null>(null);
+  const [warrantyLoading, setWarrantyLoading] = useState(false);
+  const [warrantyError, setWarrantyError] = useState<string | null>(null);
 
-  // Filter warranties
-  const filteredWarranties = warranties.filter(w => {
-    const matchesSearch = w.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         w.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         w.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || w.warrantyStatus === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const [formMode, setFormMode] = useState<'none' | 'create' | 'edit'>('none');
+  const [form, setForm] = useState<WarrantyFormState>({ startDate: '', endDate: '', notes: '' });
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const totalPages = Math.ceil(filteredWarranties.length / itemsPerPage);
-  const displayedWarranties = filteredWarranties.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const pageSize = 10;
 
-  const stats = {
-    total: warranties.length,
-    active: warranties.filter(w => w.warrantyStatus === 'active').length,
-    expiring: warranties.filter(w => w.warrantyStatus === 'expiring').length,
-    expired: warranties.filter(w => w.warrantyStatus === 'expired').length
+  const fetchIncubators = useCallback(async (page = 1) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await incubatorService.list({ page, pageSize });
+      setIncubators(result.items);
+      setTotalIncubators(result.totalItems);
+      setTotalPages(result.totalPages);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể tải danh sách máy ấp');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchIncubators(currentPage);
+  }, [fetchIncubators, currentPage]);
+
+  const fetchWarranty = async (incubator: Incubator) => {
+    setSelectedIncubator(incubator);
+    setWarranty(null);
+    setWarrantyError(null);
+    setFormMode('none');
+    setWarrantyLoading(true);
+    try {
+      const data = await warrantyService.getByIncubatorId(incubator.id);
+      setWarranty(data);
+    } catch (err: unknown) {
+      setWarrantyError(err instanceof Error ? err.message : 'Không thể tải thông tin bảo hành');
+    } finally {
+      setWarrantyLoading(false);
+    }
   };
 
-  const handleAddWarranty = () => {
-    setIsAddModalOpen(true);
+  const openCreateForm = () => {
+    setForm({ startDate: '', endDate: '', notes: '' });
+    setFormMode('create');
+    setFormError(null);
   };
 
-  const handleAddIssue = () => {
-    if (!selectedWarranty) return;
-    setIsIssueModalOpen(true);
+  const openEditForm = () => {
+    if (!warranty) return;
+    setForm({
+      startDate: warranty.startDate ? warranty.startDate.slice(0, 10) : '',
+      endDate: warranty.endDate ? warranty.endDate.slice(0, 10) : '',
+      notes: warranty.notes ?? '',
+    });
+    setFormMode('edit');
+    setFormError(null);
   };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedIncubator) return;
+    setFormSubmitting(true);
+    setFormError(null);
+    try {
+      if (formMode === 'create') {
+        await warrantyService.create({
+          incubatorId: selectedIncubator.id,
+          startDate: form.startDate || undefined,
+          endDate: form.endDate || undefined,
+          notes: form.notes.trim() || undefined,
+        });
+      } else if (formMode === 'edit' && warranty) {
+        await warrantyService.update(warranty.id, {
+          startDate: form.startDate || undefined,
+          endDate: form.endDate || undefined,
+          notes: form.notes.trim() || undefined,
+        });
+      }
+      setFormMode('none');
+      await fetchWarranty(selectedIncubator);
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Không thể lưu bảo hành');
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  const filteredIncubators = searchTerm.trim()
+    ? incubators.filter((inc) =>
+        inc.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inc.modelName?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : incubators;
+
+  const isWarrantyExpired = warranty?.endDate
+    ? new Date(warranty.endDate) < new Date()
+    : false;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-          <Shield size={32} className="text-blue-600" />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <Shield size={22} className="text-blue-600" />
           Quản Lý Bảo Hành
         </h2>
-        <p className="text-slate-600 mt-1">Quản lý sản phẩm bảo hành, số lần bảo hành và lỗi kỹ thuật</p>
+        <button
+          onClick={() => fetchIncubators(currentPage)}
+          disabled={loading}
+          className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60"
+          title="Làm mới"
+        >
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+        </button>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-6 border border-slate-200">
-          <p className="text-sm text-slate-600 mb-2">Tổng Sản Phẩm</p>
-          <p className="text-3xl font-bold text-slate-900">{stats.total}</p>
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <AlertCircle size={16} />
+          {error}
         </div>
-        <div className="bg-white rounded-lg p-6 border border-green-200">
-          <p className="text-sm text-green-700 mb-2">Còn Hiệu Lực</p>
-          <p className="text-3xl font-bold text-green-700">{stats.active}</p>
-        </div>
-        <div className="bg-white rounded-lg p-6 border border-yellow-200">
-          <p className="text-sm text-yellow-700 mb-2">Sắp Hết</p>
-          <p className="text-3xl font-bold text-yellow-700">{stats.expiring}</p>
-        </div>
-        <div className="bg-white rounded-lg p-6 border border-red-200">
-          <p className="text-sm text-red-700 mb-2">Đã Hết</p>
-          <p className="text-3xl font-bold text-red-700">{stats.expired}</p>
-        </div>
-      </div>
+      )}
 
-      {/* Content */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Warranty List */}
-        <div className="col-span-2 bg-white rounded-lg border border-slate-200 overflow-hidden">
-          {/* Toolbar */}
-          <div className="p-6 border-b border-slate-200 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">Danh Sách Bảo Hành</h3>
-              <button
-                onClick={handleAddWarranty}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <Plus size={18} />
-                Thêm Bảo Hành
-              </button>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <Search size={18} className="absolute left-3 top-2.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm sản phẩm, khách hàng..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value as any);
-                  setCurrentPage(1);
-                }}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">Tất Cả</option>
-                <option value="active">Còn Hiệu Lực</option>
-                <option value="expiring">Sắp Hết</option>
-                <option value="expired">Đã Hết</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">Mã BH</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">Sản Phẩm</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">Khách Hàng</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">Trạng Thái</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">Sửa/Tổng</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-600">Hết Hạn</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedWarranties.map((warranty) => {
-                  const config = statusConfig[warranty.warrantyStatus];
-                  const StatusIcon = config.icon;
-                  return (
-                    <tr
-                      key={warranty.id}
-                      onClick={() => setSelectedWarranty(warranty)}
-                      className={`border-b border-slate-200 cursor-pointer transition-colors ${
-                        selectedWarranty?.id === warranty.id
-                          ? 'bg-blue-50'
-                          : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-900">{warranty.id}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{warranty.productName}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{warranty.customerName}</td>
-                      <td className="px-6 py-4">
-                        <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.text}`}>
-                          <StatusIcon size={14} />
-                          {config.label}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-900">
-                        {warranty.serviceCounts}/{warranty.maxServiceAllowed}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{warranty.warrantyEndDate}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="p-4 border-t border-slate-200">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                itemsPerPage={itemsPerPage}
-                totalItems={filteredWarranties.length}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Incubator List */}
+        <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-200">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Tìm theo serial hoặc dòng máy..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+          </div>
+
+          {loading ? (
+            <div className="py-12 text-center text-slate-500">
+              <Loader2 size={24} className="mx-auto animate-spin mb-2" />
+              <p className="text-sm">Đang tải...</p>
+            </div>
+          ) : (
+            <>
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Serial</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Dòng Máy</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Trạng Thái</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Ngày Kích Hoạt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredIncubators.map((inc) => (
+                    <tr
+                      key={inc.id}
+                      onClick={() => void fetchWarranty(inc)}
+                      className={`border-b border-slate-200 cursor-pointer transition-colors ${
+                        selectedIncubator?.id === inc.id ? 'bg-blue-50' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-xs font-mono text-slate-700">{inc.serialNumber || '—'}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600">{inc.modelName || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                          INCUBATOR_STATUS_COLOR[inc.status as IncubatorStatus] ?? 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {INCUBATOR_STATUS_LABEL[inc.status as IncubatorStatus] ?? inc.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600">
+                        {inc.activatedAt ? new Date(inc.activatedAt).toLocaleDateString('vi-VN') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredIncubators.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-slate-400 text-sm">Không có kết quả</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+              {totalPages > 1 && (
+                <div className="p-3 border-t border-slate-200">
+                  <Pagination
+                    totalItems={totalIncubators}
+                    itemsPerPage={pageSize}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Warranty Details */}
+        {/* Warranty Detail Panel */}
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-          {selectedWarranty ? (
-            <div className="h-full flex flex-col">
-              {/* Header */}
-              <div className="p-6 border-b border-slate-200 bg-slate-50">
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">{selectedWarranty.id}</h3>
-                <p className="text-sm text-slate-600">{selectedWarranty.productName}</p>
-              </div>
-
-              {/* Details */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Customer Info */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900 mb-3">Thông Tin Khách Hàng</h4>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-slate-600"><span className="font-medium">Tên:</span> {selectedWarranty.customerName}</p>
-                    <p className="text-slate-600"><span className="font-medium">Email:</span> {selectedWarranty.customerEmail}</p>
-                    <p className="text-slate-600"><span className="font-medium">Điện Thoại:</span> {selectedWarranty.customerPhone}</p>
-                  </div>
-                </div>
-
-                {/* Warranty Info */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                    <Calendar size={16} />
-                    Thông Tin Bảo Hành
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-slate-600"><span className="font-medium">Ngày Mua:</span> {selectedWarranty.purchaseDate}</p>
-                    <p className="text-slate-600"><span className="font-medium">Hết Hạn:</span> {selectedWarranty.warrantyEndDate}</p>
-                    <p className="text-slate-600">
-                      <span className="font-medium">Trạng Thái:</span>
-                      <span className="ml-2">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${statusConfig[selectedWarranty.warrantyStatus].bg} ${statusConfig[selectedWarranty.warrantyStatus].text}`}>
-                          {statusConfig[selectedWarranty.warrantyStatus].label}
-                        </span>
-                      </span>
-                    </p>
-                    <p className="text-slate-600"><span className="font-medium">Lần Bảo Hành:</span> {selectedWarranty.serviceCounts}/{selectedWarranty.maxServiceAllowed}</p>
-                  </div>
-                </div>
-
-                {/* Issues */}
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900 mb-3">Lỗi Kỹ Thuật ({selectedWarranty.issues.length})</h4>
-                  <div className="space-y-2">
-                    {selectedWarranty.issues.length > 0 ? (
-                      selectedWarranty.issues.map(issue => (
-                        <div key={issue.issueId} className="p-3 bg-slate-50 rounded-lg text-sm">
-                          <div className="flex items-start justify-between mb-1">
-                            <p className="font-medium text-slate-900">{issue.issueType}</p>
-                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${issueStatusConfig[issue.status].color}`}>
-                              {issueStatusConfig[issue.status].label}
-                            </span>
-                          </div>
-                          <p className="text-slate-600 text-xs mb-1">{issue.description}</p>
-                          <p className="text-slate-500 text-xs">Ngày báo cáo: {issue.issueDate}</p>
-                          {issue.notes && <p className="text-slate-600 text-xs mt-1">Ghi chú: {issue.notes}</p>}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-slate-500">Không có lỗi nào được báo cáo</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="p-6 border-t border-slate-200 space-y-2">
-                <button
-                  onClick={handleAddIssue}
-                  className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <AlertCircle size={16} />
-                  Thêm Lỗi Kỹ Thuật
-                </button>
-                <button className="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">
-                  Gia Hạn Bảo Hành
-                </button>
+          {!selectedIncubator ? (
+            <div className="h-full flex items-center justify-center py-16 text-center px-4">
+              <div>
+                <Shield size={40} className="mx-auto text-slate-300 mb-3" />
+                <p className="text-sm text-slate-500">Chọn máy ấp để xem bảo hành</p>
               </div>
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center text-center py-12">
-              <div>
-                <Shield size={48} className="mx-auto text-slate-300 mb-3" />
-                <p className="text-sm text-slate-500">Chọn sản phẩm để xem chi tiết bảo hành</p>
+            <div className="flex flex-col h-full">
+              {/* Machine Info */}
+              <div className="p-4 border-b border-slate-200 bg-slate-50">
+                <p className="text-xs text-slate-500 mb-1">Máy ấp đã chọn</p>
+                <p className="text-sm font-mono font-medium text-slate-800 truncate">
+                  {selectedIncubator.serialNumber || selectedIncubator.id.slice(0, 12) + "..."}
+                </p>
+                {selectedIncubator.modelName && (
+                  <p className="text-xs text-slate-500 mt-0.5">{selectedIncubator.modelName}</p>
+                )}
+              </div>
+
+              <div className="flex-1 p-4 space-y-4">
+                {warrantyError && (
+                  <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                    <AlertCircle size={14} />
+                    {warrantyError}
+                  </div>
+                )}
+
+                {warrantyLoading ? (
+                  <div className="text-center py-6">
+                    <Loader2 size={20} className="mx-auto animate-spin text-slate-400" />
+                  </div>
+                ) : warranty ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                        <Shield size={14} className="text-blue-600" />
+                        Thông Tin Bảo Hành
+                      </h4>
+                      {formMode === 'none' && (
+                        <div className="flex items-center gap-2">
+                          {can(role, "warranties", "create") && (isWarrantyExpired || warranty.status !== 'ACTIVE') && (
+                            <button
+                              onClick={openCreateForm}
+                              className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700"
+                            >
+                              <Plus size={12} />
+                              Tạo mới
+                            </button>
+                          )}
+                          {can(role, "warranties", "edit") && (
+                            <button
+                              onClick={openEditForm}
+                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+                            >
+                              <Edit2 size={12} />
+                              Sửa
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
+                        <span className="text-slate-500">Trạng thái:</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          WARRANTY_STATUS_CONFIG[warranty.status]?.color ?? 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {isWarrantyExpired ? 'Hết hạn' : (WARRANTY_STATUS_CONFIG[warranty.status]?.label ?? warranty.status)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
+                        <span className="text-slate-500 flex items-center gap-1"><Calendar size={11} />Bắt đầu:</span>
+                        <span className="font-medium text-slate-800">
+                          {warranty.startDate ? new Date(warranty.startDate).toLocaleDateString('vi-VN') : '—'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
+                        <span className="text-slate-500 flex items-center gap-1"><Calendar size={11} />Kết thúc:</span>
+                        <span className={`font-medium ${isWarrantyExpired ? 'text-red-600' : 'text-slate-800'}`}>
+                          {warranty.endDate ? new Date(warranty.endDate).toLocaleDateString('vi-VN') : '—'}
+                        </span>
+                      </div>
+                      {warranty.notes && (
+                        <div className="p-2 bg-slate-50 rounded text-xs">
+                          <p className="text-slate-500 mb-1">Ghi chú:</p>
+                          <p className="text-slate-800">{warranty.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-slate-500 mb-3">Chưa có bảo hành cho máy này</p>
+                    {can(role, "warranties", "create") && formMode === 'none' && (
+                      <button
+                        onClick={openCreateForm}
+                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mx-auto"
+                      >
+                        <Plus size={14} />
+                        Tạo bảo hành
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Form */}
+                {formMode !== 'none' && (
+                  <form onSubmit={(e) => void handleFormSubmit(e)} className="space-y-3 border-t border-slate-200 pt-3">
+                    <h4 className="text-sm font-semibold text-slate-800">
+                      {formMode === 'create' ? 'Tạo Bảo Hành' : 'Cập Nhật Bảo Hành'}
+                    </h4>
+                    {formError && (
+                      <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle size={12} />{formError}</p>
+                    )}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Ngày bắt đầu</label>
+                      <input
+                        type="date"
+                        value={form.startDate}
+                        onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Ngày kết thúc</label>
+                      <input
+                        type="date"
+                        value={form.endDate}
+                        onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Ghi chú</label>
+                      <textarea
+                        value={form.notes}
+                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                        rows={2}
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormMode('none')}
+                        className="flex-1 px-3 py-1.5 border border-slate-300 text-slate-700 text-xs rounded-lg hover:bg-slate-50"
+                      >
+                        Hủy
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={formSubmitting}
+                        className="flex-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {formSubmitting ? 'Đang lưu...' : 'Lưu'}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* Add Warranty Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">Thêm Bảo Hành Mới</h3>
-                <button
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Sản Phẩm</label>
-                  <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option>-- Chọn sản phẩm --</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Khách Hàng</label>
-                  <input
-                    type="text"
-                    placeholder="Nhập tên khách hàng"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Ngày Mua</label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Thời Hạn (Năm)</label>
-                  <input
-                    type="number"
-                    placeholder="1"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Số Lần Bảo Hành Tối Đa</label>
-                  <input
-                    type="number"
-                    placeholder="3"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Plus size={16} />
-                  Thêm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Issue Modal */}
-      {isIssueModalOpen && selectedWarranty && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-900">Thêm Lỗi Kỹ Thuật</h3>
-                <button
-                  onClick={() => setIsIssueModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Loại Lỗi</label>
-                  <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option>-- Chọn loại lỗi --</option>
-                    <option>Nhiệt độ</option>
-                    <option>Motor</option>
-                    <option>Điện</option>
-                    <option>Độ ẩm</option>
-                    <option>Cảm biến</option>
-                    <option>Khác</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Mô Tả Lỗi</label>
-                  <textarea
-                    placeholder="Mô tả chi tiết lỗi kỹ thuật"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Ghi Chú</label>
-                  <textarea
-                    placeholder="Ghi chú thêm"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    rows={2}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setIsIssueModalOpen(false)}
-                  className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={() => setIsIssueModalOpen(false)}
-                  className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <AlertCircle size={16} />
-                  Thêm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
