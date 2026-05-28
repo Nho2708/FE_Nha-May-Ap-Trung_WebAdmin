@@ -1,11 +1,14 @@
 import { http } from "@/services/http";
 import type { PagedResult } from "@/types/api";
 import type {
+  AssessConfigsPayload,
   CreateMaintenanceTicketPayload,
   MaintenanceLog,
   MaintenanceTicket,
   MaintenanceTicketDetail,
+  MaintenanceTicketPaymentResponse,
   MaintenanceTicketStatus,
+  ModelConfigWithDetail,
 } from "@/types/maintenance";
 
 interface ListMaintenanceParams {
@@ -56,5 +59,17 @@ export const maintenanceService = {
   },
   getLogs(id: string) {
     return http.get<MaintenanceLog[]>(`/maintenance-tickets/${id}/logs`);
+  },
+  assignTechnician(id: string, technicianId: string) {
+    return http.put<boolean>(`/maintenance-tickets/${id}/assign`, { technicianId });
+  },
+  assessConfigs(id: string, payload: AssessConfigsPayload) {
+    return http.post<MaintenanceTicketPaymentResponse>(
+      `/maintenance-tickets/${id}/assess-configs`,
+      payload,
+    );
+  },
+  getModelConfigs(modelId: string) {
+    return http.get<ModelConfigWithDetail[]>(`/incubator-models/${modelId}/configs`);
   },
 };
