@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Activity, AlertCircle, CheckCircle, Loader2, Plus, QrCode, RefreshCw, Settings } from "lucide-react";
+import { Activity, AlertCircle, CheckCircle, Image as ImageIcon, Loader2, Plus, QrCode, RefreshCw, Settings } from "lucide-react";
 import { Pagination } from "./pagination";
 import { ResourceActionsMenu } from "./resource-actions-menu";
 import { RequiredLabel, SidePanel } from "./side-panel";
@@ -188,6 +188,7 @@ export function DeviceManagement() {
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
+                      <th className="px-4 py-3 w-14" />
                       <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Serial
                       </th>
@@ -212,6 +213,19 @@ export function DeviceManagement() {
                         }`}
                         onClick={() => void loadDetail(incubator.id)}
                       >
+                        <td className="px-4 py-3">
+                          {incubator.modelImageUrl ? (
+                            <img
+                              src={incubator.modelImageUrl}
+                              alt={incubator.modelName ?? ""}
+                              className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-50"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center">
+                              <ImageIcon size={16} className="text-slate-300" />
+                            </div>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium text-slate-900">
                           {incubator.serialNumber || "--"}
                         </td>
@@ -260,11 +274,26 @@ export function DeviceManagement() {
               Đang tải chi tiết...
             </div>
           ) : selectedIncubator ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="border-b border-slate-200 pb-4">
                 <h3 className="text-lg font-semibold text-slate-800 mb-2">Chi Tiết Máy Ấp</h3>
                 <p className="text-sm font-mono text-slate-600">{selectedIncubator.serialNumber || "--"}</p>
               </div>
+
+              {selectedIncubator.modelImageUrl ? (
+                <div className="w-full h-48 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                  <img
+                    src={selectedIncubator.modelImageUrl}
+                    alt={selectedIncubator.modelName ?? "Ảnh dòng máy"}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-28 rounded-xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-1">
+                  <ImageIcon size={24} className="text-slate-300" />
+                  <p className="text-xs text-slate-400">Dòng máy chưa có ảnh</p>
+                </div>
+              )}
 
               <DetailRow label="Serial">{selectedIncubator.serialNumber || "--"}</DetailRow>
               <DetailRow label="Dòng máy">{selectedIncubator.modelName || "--"}</DetailRow>
@@ -458,14 +487,27 @@ function CreateIncubatorPanel({
                         setIsModelSuggestOpen(false);
                         setModelError(null);
                       }}
-                      className="w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                      className="w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-blue-50 focus:bg-blue-50 focus:outline-none flex items-center gap-3"
                     >
-                      <div className="text-sm font-medium text-slate-900">
-                        {model.modelCode} - {model.name}
-                      </div>
-                      {model.description && (
-                        <div className="mt-0.5 line-clamp-1 text-xs text-slate-500">{model.description}</div>
+                      {model.imageUrl ? (
+                        <img
+                          src={model.imageUrl}
+                          alt={model.name}
+                          className="w-9 h-9 rounded-lg object-cover border border-slate-200 bg-slate-50 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center shrink-0">
+                          <ImageIcon size={14} className="text-slate-300" />
+                        </div>
                       )}
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">
+                          {model.modelCode} - {model.name}
+                        </div>
+                        {model.description && (
+                          <div className="mt-0.5 line-clamp-1 text-xs text-slate-500">{model.description}</div>
+                        )}
+                      </div>
                     </button>
                   ))}
 
@@ -478,6 +520,31 @@ function CreateIncubatorPanel({
           {modelError && <p className="mt-1 text-xs text-red-600">{modelError}</p>}
           <p className="mt-1 text-xs text-slate-500">Gợi ý tối đa 7 dòng máy sau khi ngừng nhập 1 giây.</p>
         </div>
+
+        {selectedModel && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 flex items-center gap-4">
+            {selectedModel.imageUrl ? (
+              <img
+                src={selectedModel.imageUrl}
+                alt={selectedModel.name}
+                className="w-20 h-20 rounded-lg object-contain border border-slate-200 bg-white shrink-0"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-lg border border-dashed border-slate-300 bg-white flex flex-col items-center justify-center shrink-0 gap-1">
+                <ImageIcon size={20} className="text-slate-300" />
+                <span className="text-[10px] text-slate-400">Chưa có ảnh</span>
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-0.5">Dòng máy đã chọn</p>
+              <p className="text-sm font-bold text-slate-800 truncate">{selectedModel.name}</p>
+              <p className="text-xs font-mono text-slate-500">{selectedModel.modelCode}</p>
+              {selectedModel.description && (
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{selectedModel.description}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         <div>
           <RequiredLabel>Số lượng</RequiredLabel>

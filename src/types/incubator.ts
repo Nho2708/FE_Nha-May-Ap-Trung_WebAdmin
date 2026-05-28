@@ -15,6 +15,7 @@ export interface Incubator {
   serialNumber: string | null;
   modelId: string;
   modelName: string | null;
+  modelImageUrl?: string | null;
   customerId: string | null;
   activatedAt: string | null;
 }
