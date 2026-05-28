@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, CheckCircle, XCircle, Clock, RefreshCw, AlertCircle } from 'lucide-react';
+import { Package, CheckCircle, XCircle, Clock, RefreshCw, AlertCircle, QrCode } from 'lucide-react';
 import { CreateOrderModal } from './create-order-modal';
 import { UpdateOrderModal } from './update-order-modal';
+import { PaymentQRModal } from './payment-qr-modal';
 import { Pagination } from './pagination';
 import { ResourceActionsMenu } from './resource-actions-menu';
 import { can } from '@/config/permissions';
@@ -58,6 +59,7 @@ export function SalesOrders() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
+  const [qrOrder, setQrOrder] = useState<SalesOrder | null>(null);
 
   const pageSize = 10;
 
@@ -207,11 +209,22 @@ export function SalesOrders() {
                             : new Date(order.createdAt).toLocaleDateString('vi-VN')}
                         </td>
                         <td className="px-5 py-4 whitespace-nowrap">
-                          <ResourceActionsMenu
-                            canEdit={can(role, "orders", "edit")}
-                            canDelete={false}
-                            onEdit={() => openUpdateModal(order)}
-                          />
+                          <div className="flex items-center gap-1">
+                            {order.qrCode && order.paymentStatus === 'PENDING' && (
+                              <button
+                                onClick={() => setQrOrder(order)}
+                                title="Xem mã QR thanh toán"
+                                className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                              >
+                                <QrCode size={16} />
+                              </button>
+                            )}
+                            <ResourceActionsMenu
+                              canEdit={can(role, "orders", "edit")}
+                              canDelete={false}
+                              onEdit={() => openUpdateModal(order)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -249,6 +262,15 @@ export function SalesOrders() {
         }}
         onSubmit={handleUpdated}
         order={selectedOrder}
+      />
+
+      <PaymentQRModal
+        isOpen={!!qrOrder}
+        onClose={() => setQrOrder(null)}
+        qrCode={qrOrder?.qrCode ?? ''}
+        orderCode={qrOrder?.orderCode ?? qrOrder?.id.slice(0, 8).toUpperCase()}
+        totalAmount={qrOrder?.totalAmount}
+        expiredAt={qrOrder?.paymentLinkExpiredAt}
       />
     </div>
   );

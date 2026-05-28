@@ -12,7 +12,7 @@ export interface SalesOrder {
   paymentStatus: PaymentStatus;
   paymentOrderCode: number | null;
   paymentLinkId: string | null;
-  checkoutUrl: string | null;
+  qrCode: string | null;
   paymentLinkCreatedAt: string | null;
   paymentLinkExpiredAt: string | null;
   paidAt: string | null;
@@ -45,7 +45,8 @@ export interface CreateOrderResponse {
   paymentStatus: PaymentStatus;
   paymentOrderCode: number | null;
   paymentLinkId: string | null;
-  checkoutUrl: string | null;
+  qrCode: string | null;
+  paymentLinkExpiredAt: string | null;
 }
 
 export interface OrderItemPayload {

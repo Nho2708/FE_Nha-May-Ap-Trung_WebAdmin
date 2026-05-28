@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { X, Package, CheckCircle, XCircle, AlertCircle, Wrench } from 'lucide-react';
 import { orderService } from '@/services/orders';
+import { incubatorService } from '@/services/incubators';
 import { can } from '@/config/permissions';
 import { useSession } from '@/hooks/use-session';
 import type { SalesOrder, SalesOrderItem, SalesOrderDetail } from '@/types/order';
+import type { Incubator } from '@/types/incubator';
 
 interface UpdateOrderModalProps {
   isOpen: boolean;
@@ -33,6 +35,12 @@ const ITEM_STATUS_LABEL: Record<string, string> = {
   CANCELLED: 'Đã hủy',
 };
 
+interface AssignState {
+  incubators: Incubator[];
+  selectedId: string;
+  loading: boolean;
+}
+
 export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrderModalProps) {
   const session = useSession();
   const role = session?.role;
@@ -42,14 +50,23 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // itemId → assign UI state
+  const [assignMap, setAssignMap] = useState<Record<string, AssignState>>({});
+
+  const loadDetail = () => {
+    if (!order) return;
+    setLoading(true);
+    setError(null);
+    orderService.getById(order.id)
+      .then((data) => setDetail(data))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không thể tải chi tiết'))
+      .finally(() => setLoading(false));
+  };
+
   useEffect(() => {
     if (isOpen && order) {
-      setLoading(true);
-      setError(null);
-      orderService.getById(order.id)
-        .then((data) => setDetail(data))
-        .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không thể tải chi tiết'))
-        .finally(() => setLoading(false));
+      setAssignMap({});
+      loadDetail();
     }
   }, [isOpen, order]);
 
@@ -82,11 +99,63 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
     }
   };
 
+  const openAssignPanel = async (item: SalesOrderItem) => {
+    setAssignMap((prev) => ({
+      ...prev,
+      [item.id]: { incubators: [], selectedId: '', loading: true },
+    }));
+    try {
+      const result = await incubatorService.list({
+        modelId: item.incubatorModelId,
+        status: 'AVAILABLE',
+        pageSize: 50,
+      });
+      setAssignMap((prev) => ({
+        ...prev,
+        [item.id]: { incubators: result.items, selectedId: '', loading: false },
+      }));
+    } catch {
+      setAssignMap((prev) => ({
+        ...prev,
+        [item.id]: { incubators: [], selectedId: '', loading: false },
+      }));
+    }
+  };
+
+  const closeAssignPanel = (itemId: string) => {
+    setAssignMap((prev) => {
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+  };
+
+  const handleAssign = async (item: SalesOrderItem) => {
+    if (!order) return;
+    const state = assignMap[item.id];
+    if (!state?.selectedId) return;
+    setActionLoading(`assign-${item.id}`);
+    setError(null);
+    try {
+      await orderService.assignIncubator(order.id, {
+        orderItemId: item.id,
+        incubatorId: state.selectedId,
+      });
+      closeAssignPanel(item.id);
+      loadDetail();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể gán máy');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (!isOpen || !order) return null;
 
-  const canEdit = can(role, "orders", "edit");
-  const canComplete = canEdit && (order.status === 'PROCESSING');
+  const canEdit = can(role, 'orders', 'edit');
+  const canComplete = canEdit && order.status === 'PROCESSING';
   const canCancel = canEdit && (order.status === 'PENDING' || order.status === 'PROCESSING');
+  const canAssign = canEdit && order.paymentStatus === 'PAID';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -124,7 +193,9 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
               </div>
               <div>
                 <span className="text-slate-500 text-xs">Thanh toán:</span>
-                <p className="font-semibold text-slate-800">{PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}</p>
+                <p className={`font-semibold ${order.paymentStatus === 'PAID' ? 'text-green-600' : 'text-slate-800'}`}>
+                  {PAYMENT_STATUS_LABEL[order.paymentStatus] ?? order.paymentStatus}
+                </p>
               </div>
               <div>
                 <span className="text-slate-500 text-xs">Tổng tiền:</span>
@@ -144,19 +215,6 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
                   <p className="font-medium text-slate-800">{order.shippingAddress}</p>
                 </div>
               )}
-              {order.checkoutUrl && order.paymentStatus === 'PENDING' && (
-                <div className="col-span-2">
-                  <a
-                    href={order.checkoutUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 underline"
-                  >
-                    <ExternalLink size={12} />
-                    Link thanh toán
-                  </a>
-                </div>
-              )}
             </div>
           </div>
 
@@ -169,28 +227,101 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
               </div>
             ) : detail?.items && detail.items.length > 0 ? (
               <div className="space-y-2">
-                {detail.items.map((item: SalesOrderItem) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200 text-sm">
-                    <div>
-                      <p className="font-medium text-slate-800 text-xs">
-                        Model ID: {item.incubatorModelId.slice(0, 8)}...
-                      </p>
-                      {item.incubatorId && (
-                        <p className="text-xs text-slate-500">Máy: {item.incubatorId.slice(0, 8)}...</p>
+                {detail.items.map((item: SalesOrderItem) => {
+                  const assign = assignMap[item.id];
+                  const isAssigning = actionLoading === `assign-${item.id}`;
+                  return (
+                    <div key={item.id} className="border border-slate-200 rounded-lg overflow-hidden">
+                      {/* Item row */}
+                      <div className="flex items-center justify-between px-3 py-3 bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <Package size={14} className="text-slate-400 shrink-0" />
+                          <div>
+                            <p className="text-xs font-medium text-slate-700">
+                              Model: <span className="font-mono">{item.incubatorModelId.slice(0, 8)}…</span>
+                            </p>
+                            {item.incubatorId && (
+                              <p className="text-xs text-slate-500">
+                                Máy: <span className="font-mono">{item.incubatorId.slice(0, 8)}…</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <p className="text-xs font-semibold text-slate-800">{item.unitPrice.toLocaleString('vi-VN')} ₫</p>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              item.status === 'ASSIGNED' ? 'bg-green-100 text-green-700' :
+                              item.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                              'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {ITEM_STATUS_LABEL[item.status] ?? item.status}
+                            </span>
+                          </div>
+                          {canAssign && item.status === 'PENDING_ASSIGNMENT' && !assign && (
+                            <button
+                              onClick={() => openAssignPanel(item)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium shrink-0"
+                            >
+                              <Wrench size={12} />
+                              Gán máy
+                            </button>
+                          )}
+                          {assign && (
+                            <button
+                              onClick={() => closeAssignPanel(item.id)}
+                              className="text-xs text-slate-400 hover:text-slate-600 px-1"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Assign panel */}
+                      {assign && (
+                        <div className="px-3 py-3 border-t border-slate-200 bg-blue-50">
+                          {assign.loading ? (
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <div className="animate-spin w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full" />
+                              Đang tải danh sách máy...
+                            </div>
+                          ) : assign.incubators.length === 0 ? (
+                            <p className="text-xs text-orange-600">Không có máy khả dụng cho dòng này.</p>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={assign.selectedId}
+                                onChange={(e) =>
+                                  setAssignMap((prev) => ({
+                                    ...prev,
+                                    [item.id]: { ...prev[item.id], selectedId: e.target.value },
+                                  }))
+                                }
+                                className="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              >
+                                <option value="">-- Chọn máy --</option>
+                                {assign.incubators.map((inc) => (
+                                  <option key={inc.id} value={inc.id}>
+                                    {inc.serialNumber ?? inc.id.slice(0, 8)}
+                                    {inc.modelName ? ` — ${inc.modelName}` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => handleAssign(item)}
+                                disabled={!assign.selectedId || isAssigning}
+                                className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 shrink-0"
+                              >
+                                {isAssigning ? 'Đang gán...' : 'Xác nhận'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-slate-800">{item.unitPrice.toLocaleString('vi-VN')} ₫</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        item.status === 'ASSIGNED' ? 'bg-green-100 text-green-700' :
-                        item.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {ITEM_STATUS_LABEL[item.status] ?? item.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-slate-500 text-center py-3">Không có sản phẩm</p>
@@ -198,51 +329,37 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
           </div>
 
           {/* Actions */}
-          {canEdit && (canComplete || canCancel) && (
-            <div className="flex gap-3 pt-4 border-t border-slate-200">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors font-medium"
+            >
+              Đóng
+            </button>
+            {canCancel && (
               <button
                 type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                onClick={handleCancel}
+                disabled={actionLoading === 'cancel'}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Đóng
+                <XCircle size={16} />
+                {actionLoading === 'cancel' ? 'Đang hủy...' : 'Hủy Đơn'}
               </button>
-              {canCancel && (
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={actionLoading === 'cancel'}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <XCircle size={16} />
-                  {actionLoading === 'cancel' ? 'Đang hủy...' : 'Hủy Đơn'}
-                </button>
-              )}
-              {canComplete && (
-                <button
-                  type="button"
-                  onClick={handleComplete}
-                  disabled={actionLoading === 'complete'}
-                  className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <CheckCircle size={16} />
-                  {actionLoading === 'complete' ? 'Đang xử lý...' : 'Hoàn Thành'}
-                </button>
-              )}
-            </div>
-          )}
-
-          {(!canComplete && !canCancel) && (
-            <div className="flex justify-end pt-4 border-t border-slate-200">
+            )}
+            {canComplete && (
               <button
                 type="button"
-                onClick={onClose}
-                className="px-6 py-2.5 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                onClick={handleComplete}
+                disabled={actionLoading === 'complete'}
+                className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Đóng
+                <CheckCircle size={16} />
+                {actionLoading === 'complete' ? 'Đang xử lý...' : 'Hoàn Thành'}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
