@@ -324,6 +324,12 @@ export function WarrantyManagement() {
                     </div>
 
                     <div className="space-y-2 text-sm">
+                      {warranty.warrantyCode && (
+                        <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
+                          <span className="text-slate-500">Mã bảo hành:</span>
+                          <span className="font-medium text-slate-800">{warranty.warrantyCode}</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between p-2 bg-slate-50 rounded text-xs">
                         <span className="text-slate-500">Trạng thái:</span>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
