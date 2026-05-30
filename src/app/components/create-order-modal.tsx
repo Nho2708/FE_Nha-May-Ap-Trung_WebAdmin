@@ -109,6 +109,7 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdOrder, setCreatedOrder] = useState<CreateOrderResponse | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -123,7 +124,22 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
     setCustomerInfo({ fullName: '', phone: '', email: '', address: '', description: '', verificationPass: '' });
     setError(null);
     setCreatedOrder(null);
+    setTouched({});
   };
+
+  const markTouched = (field: string) =>
+    setTouched((prev) => ({ ...prev, [field]: true }));
+
+  const VN_PHONE_RE = /^0[3-9][0-9]{8}$/;
+  const phoneError = touched.phone && customerInfo.phone.trim() && !VN_PHONE_RE.test(customerInfo.phone.trim())
+    ? 'Số điện thoại không hợp lệ (10 số, bắt đầu 03-09)'
+    : null;
+  const addressError = touched.address && customerInfo.address.trim().length > 0 && customerInfo.address.trim().length < 10
+    ? 'Địa chỉ tối thiểu 10 ký tự'
+    : null;
+  const addressMissing = touched.address && !customerInfo.address.trim()
+    ? 'Vui lòng nhập địa chỉ giao hàng'
+    : null;
 
   const addItem = () => {
     setItems([...items, { incubatorModelId: '', quantity: 1 }]);
@@ -142,10 +158,17 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
   };
 
   const isStep1Valid = items.length > 0 && items.every((item) => item.incubatorModelId && item.quantity >= 1);
-  const isStep2Valid = customerInfo.fullName.trim() && customerInfo.phone.trim() && customerInfo.verificationPass.length >= 6;
+  const isStep2Valid =
+    customerInfo.fullName.trim() &&
+    customerInfo.phone.trim() &&
+    VN_PHONE_RE.test(customerInfo.phone.trim()) &&
+    customerInfo.address.trim().length >= 10 &&
+    customerInfo.verificationPass.length >= 6;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ phone: true, address: true });
+    if (!isStep2Valid) return;
     setLoading(true);
     setError(null);
     try {
@@ -312,10 +335,12 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
                     name="phone"
                     value={customerInfo.phone}
                     onChange={handleCustomerChange}
+                    onBlur={() => markTouched('phone')}
                     placeholder="0912345678"
-                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${phoneError ? 'border-red-400 bg-red-50' : 'border-slate-300'}`}
                     required
                   />
+                  {phoneError && <p className="mt-1 text-xs text-red-600">{phoneError}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1.5">Email</label>
@@ -344,15 +369,22 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Địa Chỉ Giao Hàng</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                    Địa Chỉ Giao Hàng <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     name="address"
                     value={customerInfo.address}
                     onChange={handleCustomerChange}
-                    placeholder="Địa chỉ đầy đủ"
-                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    onBlur={() => markTouched('address')}
+                    placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
+                    className={`w-full px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${(addressMissing || addressError) ? 'border-red-400 bg-red-50' : 'border-slate-300'}`}
+                    required
                   />
+                  {(addressMissing || addressError) && (
+                    <p className="mt-1 text-xs text-red-600">{addressMissing ?? addressError}</p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs font-medium text-slate-700 mb-1.5">Ghi Chú</label>
