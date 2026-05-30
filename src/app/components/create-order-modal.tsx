@@ -153,7 +153,7 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
         fullName: customerInfo.fullName.trim(),
         phone: customerInfo.phone.trim(),
         email: customerInfo.email.trim() || undefined,
-        address: customerInfo.address.trim() || undefined,
+        shippingAddress: customerInfo.address.trim() || undefined,
         description: customerInfo.description.trim() || undefined,
         verificationPass: customerInfo.verificationPass,
         items,

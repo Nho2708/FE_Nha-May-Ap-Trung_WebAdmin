@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Package, CheckCircle, XCircle, AlertCircle, Wrench } from 'lucide-react';
 import { orderService } from '@/services/orders';
 import { incubatorService } from '@/services/incubators';
+import { incubatorModelService } from '@/services/incubatorModels';
 import { can } from '@/config/permissions';
 import { useSession } from '@/hooks/use-session';
 import type { SalesOrder, SalesOrderItem, SalesOrderDetail } from '@/types/order';
@@ -49,6 +50,8 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [modelCodeMap, setModelCodeMap] = useState<Map<string, string>>(new Map());
+  const [serialMap, setSerialMap] = useState<Map<string, string>>(new Map());
 
   // itemId → assign UI state
   const [assignMap, setAssignMap] = useState<Record<string, AssignState>>({});
@@ -58,7 +61,24 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
     setLoading(true);
     setError(null);
     orderService.getById(order.id)
-      .then((data) => setDetail(data))
+      .then(async (data) => {
+        setDetail(data);
+        if (!data?.items?.length) return;
+        const modelIds = [...new Set(data.items.map((i) => i.incubatorModelId))];
+        const incubatorIds = data.items.map((i) => i.incubatorId).filter(Boolean) as string[];
+        const [models, incubators] = await Promise.all([
+          incubatorModelService.list({ pageSize: 200 }).catch(() => ({ items: [] })),
+          incubatorIds.length
+            ? incubatorService.list({ pageSize: 200 }).catch(() => ({ items: [] }))
+            : Promise.resolve({ items: [] }),
+        ]);
+        setModelCodeMap(new Map(
+          models.items.filter((m) => modelIds.includes(m.id)).map((m) => [m.id, m.name])
+        ));
+        setSerialMap(new Map(
+          incubators.items.filter((i) => i.serialNumber).map((i) => [i.id, i.serialNumber as string])
+        ));
+      })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không thể tải chi tiết'))
       .finally(() => setLoading(false));
   };
@@ -238,11 +258,11 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
                           <Package size={14} className="text-slate-400 shrink-0" />
                           <div>
                             <p className="text-xs font-medium text-slate-700">
-                              Model: <span className="font-mono">{item.incubatorModelId.slice(0, 8)}…</span>
+                              Model: <span className="font-semibold">{modelCodeMap.get(item.incubatorModelId) ?? '—'}</span>
                             </p>
                             {item.incubatorId && (
                               <p className="text-xs text-slate-500">
-                                Máy: <span className="font-mono">{item.incubatorId.slice(0, 8)}…</span>
+                                Serial: <span className="font-semibold text-slate-700">{serialMap.get(item.incubatorId) ?? '—'}</span>
                               </p>
                             )}
                           </div>

@@ -58,7 +58,7 @@ export interface CreateOrderByGuestPayload {
   fullName: string;
   phone: string;
   email?: string;
-  address?: string;
+  shippingAddress?: string;
   description?: string;
   verificationPass: string;
   items: OrderItemPayload[];
