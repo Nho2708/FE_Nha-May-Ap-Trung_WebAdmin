@@ -135,6 +135,7 @@
 
   html {
     font-size: var(--font-size);
+    font-family: 'Be Vietnam Pro', ui-sans-serif, system-ui, sans-serif;
   }
 
   h1 {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Box,
   CheckCircle,
@@ -202,29 +202,28 @@ function ConfigPicker({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  useEffect(() => {
-    if (!search.trim()) {
-      setResults([]);
-      return;
-    }
-    let cancelled = false;
-    const t = window.setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await configService.list({ search, pageSize: 8 });
-        if (!cancelled) {
-          setResults(res.items);
-          setOpen(true);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  const fetchConfigs = useCallback(async (q: string, cancelled: () => boolean) => {
+    setLoading(true);
+    try {
+      const res = await configService.list({ search: q || undefined, pageSize: 8 });
+      if (!cancelled()) {
+        setResults(res.items);
+        setOpen(true);
       }
-    }, 500);
+    } finally {
+      if (!cancelled()) setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const delay = search.trim() ? 300 : 0;
+    const t = window.setTimeout(() => fetchConfigs(search, () => isCancelled), delay);
     return () => {
-      cancelled = true;
+      isCancelled = true;
       window.clearTimeout(t);
     };
-  }, [search]);
+  }, [search, fetchConfigs]);
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -233,7 +232,7 @@ function ConfigPicker({
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => { setOpen(true); if (results.length === 0) fetchConfigs(search, () => false); }}
           placeholder="Tìm config theo tên hoặc mã..."
           className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
           autoComplete="off"
@@ -243,10 +242,10 @@ function ConfigPicker({
         )}
       </div>
 
-      {open && (results.length > 0 || (search.trim() && !loading)) && (
+      {open && (results.length > 0 || !loading) && (
         <div className="absolute z-40 mt-1.5 w-full max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl p-1">
           {results.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-slate-500">Không tìm thấy config phù hợp.</p>
+            <p className="px-3 py-2 text-sm text-slate-500">{search.trim() ? "Không tìm thấy config phù hợp." : "Không có config nào."}</p>
           ) : (
             results.map((cfg) => {
               const already = existingIds.includes(cfg.id);

@@ -581,7 +581,7 @@ export function MaintenanceTickets() {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 mb-1.5">
-                        Máy ấp: <span className="font-medium text-slate-800">{incubatorSerialMap.get(ticket.incubatorId) ?? formatShortId(ticket.incubatorId)}</span>
+                        Máy ấp: <span className="font-medium text-slate-800">{incubatorSerialMap.get(ticket.incubatorId) ?? "—"}</span>
                       </p>
                       <p className="text-xs text-slate-700">{ticket.issueDescription}</p>
                     </div>
@@ -638,11 +638,11 @@ export function MaintenanceTickets() {
                   <StatusBadge status={selectedTicket.status} />
                 </DetailRow>
                 <DetailRow label="Máy ấp">
-                  {incubatorSerialMap.get(selectedTicket.incubatorId) ?? selectedTicket.incubatorId}
+                  {incubatorSerialMap.get(selectedTicket.incubatorId) ?? "—"}
                 </DetailRow>
                 <DetailRow label="Kỹ thuật viên">
                   {selectedTicket.technicianId
-                    ? technicianMap.get(selectedTicket.technicianId) || selectedTicket.technicianId
+                    ? technicianMap.get(selectedTicket.technicianId) || "—"
                     : "Chưa phân công"}
                 </DetailRow>
 
