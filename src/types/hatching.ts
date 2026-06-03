@@ -60,6 +60,7 @@ export interface TemplateBatchItemPayload {
   name?: string;
   dayStart: number;
   dayEnd: number;
+  numberOfDays: number;
   notes?: string;
   configs?: BatchConfigItemPayload[];
 }

@@ -32,7 +32,7 @@ const buildHeaders = (body: RequestOptions["body"], headers?: HeadersInit) => {
 
 const parseResponse = async <T>(response: Response) => {
   const contentType = response.headers.get("content-type") ?? "";
-  const isJson = contentType.includes("application/json");
+  const isJson = contentType.includes("json");
   const payload = isJson ? ((await response.json()) as ApiResponse<T>) : null;
 
   if (!response.ok) {
@@ -40,10 +40,19 @@ const parseResponse = async <T>(response: Response) => {
       authStorage.clearAccessToken();
     }
 
+    const raw = payload as Record<string, unknown> | null;
+    const message =
+      raw?.message as string ||
+      raw?.Message as string ||
+      raw?.title as string ||
+      `Request failed with status ${response.status}`;
+    const errorDetails = raw?.errors;
+    if (errorDetails) console.error('[API 400 errors]', errorDetails);
+
     throw new ApiError(
-      payload?.message || `Request failed with status ${response.status}`,
+      message,
       response.status,
-      payload?.statusCode,
+      (raw?.statusCode ?? raw?.StatusCode) as string | undefined,
     );
   }
 

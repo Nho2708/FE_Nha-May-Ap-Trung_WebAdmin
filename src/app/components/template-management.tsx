@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FileText, Clock, Plus, RefreshCw, AlertCircle, ChevronRight } from 'lucide-react';
+import { FileText, Clock, Plus, RefreshCw, AlertCircle, ChevronRight, Settings, Loader2 } from 'lucide-react';
 import { CreateTemplateModal } from './create-template-modal';
 import { UpdateTemplateModal } from './update-template-modal';
 import { ResourceActionsMenu } from './resource-actions-menu';
@@ -7,7 +7,8 @@ import { Pagination } from './pagination';
 import { can } from '@/config/permissions';
 import { useSession } from '@/hooks/use-session';
 import { hatchingSeasonTemplateService } from '@/services/hatchingSeasonTemplates';
-import type { HatchingSeasonTemplate } from '@/types/hatching';
+import { configService, type Config } from '@/services/configs';
+import type { HatchingSeasonTemplate, HatchingSeasonTemplateDetail } from '@/types/hatching';
 
 const EGG_TYPE_ICONS: Record<string, string> = {
   'Gà': '🐔',
@@ -31,6 +32,9 @@ export function TemplateManagement() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedTemplate, setSelectedTemplate] = useState<HatchingSeasonTemplate | null>(null);
+  const [selectedTemplateDetail, setSelectedTemplateDetail] = useState<HatchingSeasonTemplateDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [configs, setConfigs] = useState<Config[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
@@ -55,6 +59,24 @@ export function TemplateManagement() {
     fetchTemplates(currentPage);
   }, [fetchTemplates, currentPage]);
 
+  useEffect(() => {
+    configService.list({ pageSize: 100 }).then((res) => setConfigs(res.items ?? [])).catch(() => {});
+  }, []);
+
+  const handleSelectTemplate = useCallback(async (template: HatchingSeasonTemplate) => {
+    setSelectedTemplate(template);
+    setSelectedTemplateDetail(null);
+    setDetailLoading(true);
+    try {
+      const detail = await hatchingSeasonTemplateService.getById(template.id);
+      setSelectedTemplateDetail(detail);
+    } catch {
+      // keep basic info, just no batches
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
   const handleCreated = () => {
     fetchTemplates(1);
     setCurrentPage(1);
@@ -63,13 +85,17 @@ export function TemplateManagement() {
   const handleUpdated = () => {
     fetchTemplates(currentPage);
     setIsUpdateModalOpen(false);
-    setSelectedTemplate(null);
+    if (selectedTemplate) handleSelectTemplate(selectedTemplate);
+    else setSelectedTemplate(null);
   };
 
   const handleDelete = async (id: string) => {
     try {
       await hatchingSeasonTemplateService.delete(id);
-      if (selectedTemplate?.id === id) setSelectedTemplate(null);
+      if (selectedTemplate?.id === id) {
+        setSelectedTemplate(null);
+        setSelectedTemplateDetail(null);
+      }
       fetchTemplates(currentPage);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Không thể xóa template');
@@ -128,7 +154,7 @@ export function TemplateManagement() {
             templates.map((template) => (
               <div
                 key={template.id}
-                onClick={() => setSelectedTemplate(template)}
+                onClick={() => handleSelectTemplate(template)}
                 className={`bg-white rounded-lg shadow-sm border-2 transition-all cursor-pointer hover:shadow ${
                   selectedTemplate?.id === template.id
                     ? 'border-blue-500 shadow'
@@ -219,7 +245,7 @@ export function TemplateManagement() {
         </div>
 
         {/* Template Details */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 h-fit sticky top-6">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 h-fit sticky top-6 max-h-[80vh] overflow-y-auto hide-scrollbar">
           {selectedTemplate ? (
             <div className="space-y-4">
               <div className="text-center pb-3 border-b border-slate-200">
@@ -259,6 +285,68 @@ export function TemplateManagement() {
                     {new Date(selectedTemplate.createdAt).toLocaleDateString('vi-VN')}
                   </span>
                 </div>
+              </div>
+
+              {/* Batches detail */}
+              <div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Settings size={13} className="text-purple-600" />
+                  <span className="text-xs font-semibold text-slate-700">Các giai đoạn</span>
+                </div>
+                {detailLoading ? (
+                  <div className="flex items-center justify-center py-4 gap-2 text-slate-400 text-xs">
+                    <Loader2 size={14} className="animate-spin" />
+                    Đang tải...
+                  </div>
+                ) : !selectedTemplateDetail || selectedTemplateDetail.batches.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-3">Chưa có giai đoạn nào</p>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedTemplateDetail.batches.map((bd, idx) => {
+                      const batch = bd.batch;
+                      if (!batch) return null;
+                      return (
+                        <div key={batch.id} className="border border-slate-200 rounded-lg overflow-hidden">
+                          <div className="flex items-center justify-between px-3 py-2 bg-purple-50">
+                            <span className="text-xs font-semibold text-purple-700">
+                              Giai đoạn {idx + 1}{batch.name ? ` — ${batch.name}` : ''}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              Ngày {batch.dayStart} → {batch.dayEnd}
+                            </span>
+                          </div>
+                          {batch.notes && (
+                            <p className="px-3 py-1 text-xs text-slate-500 italic">{batch.notes}</p>
+                          )}
+                          {bd.configs.length > 0 && (
+                            <div className="px-3 py-2 space-y-1">
+                              {bd.configs.map((cfg) => {
+                                const cfgDef = configs.find((c) => c.id === cfg.configId);
+                                return (
+                                  <div key={cfg.id} className="flex items-center justify-between text-xs bg-slate-50 rounded px-2 py-1">
+                                    <span className="text-slate-700 font-medium">
+                                      {cfgDef?.name ?? cfg.configId}
+                                      {cfgDef?.unit ? ` (${cfgDef.unit})` : ''}
+                                    </span>
+                                    <span className="text-slate-500 text-right">
+                                      {cfg.targetValue != null && <span>Mục tiêu: {cfg.targetValue}</span>}
+                                      {cfg.minValue != null && cfg.maxValue != null && (
+                                        <span className="ml-1">[{cfg.minValue}–{cfg.maxValue}]</span>
+                                      )}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {bd.configs.length === 0 && (
+                            <p className="px-3 py-1.5 text-xs text-slate-400">Không có thông số</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {can(role, "templates", "edit") && (
