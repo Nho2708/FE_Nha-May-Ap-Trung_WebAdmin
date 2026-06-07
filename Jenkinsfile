@@ -44,9 +44,6 @@ pipeline {
                     robocopy dist "C:\\inetpub\\wwwroot\\NhaMayApTrung-Admin" /MIR /Z /W:5 /R:3
                     IF %ERRORLEVEL% LEQ 3 EXIT 0
                 '''
-                bat '''
-                    powershell -Command "Import-Module WebAdministration; Restart-WebSite 'NhaMayApTrung-Admin'"
-                '''
                 echo "Deploy thanh cong!"
             }
         }
