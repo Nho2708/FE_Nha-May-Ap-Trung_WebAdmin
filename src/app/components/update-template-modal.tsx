@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, Plus, Trash2, ChevronDown, ChevronUp, Settings, Loader2 } from 'lucide-react';
+import { X, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { hatchingSeasonTemplateService } from '@/services/hatchingSeasonTemplates';
 import { configService, type Config } from '@/services/configs';
 import type { HatchingSeasonTemplate } from '@/types/hatching';
@@ -11,96 +11,71 @@ interface UpdateTemplateModalProps {
   template: HatchingSeasonTemplate | null;
 }
 
-interface BatchConfigRow {
-  configId: string;
-  targetValue: string;
-  minValue: string;
-  maxValue: string;
-}
-
-interface BatchRow {
-  name: string;
-  numberOfDays: string;
-  notes: string;
-  configs: BatchConfigRow[];
-  expanded: boolean;
-}
-
-const EGG_TYPE_OPTIONS = [
+const EGG_TYPES = [
   { value: 'CHICKEN', label: 'Gà' },
   { value: 'DUCK',    label: 'Vịt' },
   { value: 'QUAIL',   label: 'Cút' },
   { value: 'PIGEON',  label: 'Bồ câu' },
 ];
 
-const toEggTypeKey = (raw: string | null | undefined): string => {
-  if (!raw) return '';
-  if (['CHICKEN', 'DUCK', 'QUAIL', 'PIGEON'].includes(raw)) return raw;
-  const legacyMap: Record<string, string> = {
-    'Gà': 'CHICKEN', 'Vịt': 'DUCK', 'Cút': 'QUAIL',
-    'Chim': 'PIGEON', 'Bồ câu': 'PIGEON',
-  };
-  return legacyMap[raw] ?? '';
+const LEGACY_EGG_MAP: Record<string, string> = {
+  'Gà': 'CHICKEN', 'Vịt': 'DUCK', 'Cút': 'QUAIL', 'Bồ câu': 'PIGEON',
 };
 
-const emptyBatch = (): BatchRow => ({
-  name: '', numberOfDays: '', notes: '', configs: [], expanded: true,
-});
+const normalizeEggType = (v: string | undefined | null) =>
+  LEGACY_EGG_MAP[v ?? ''] ?? (EGG_TYPES.some(e => e.value === v) ? v : '') ?? '';
 
-const emptyConfig = (): BatchConfigRow => ({
-  configId: '', targetValue: '', minValue: '', maxValue: '',
-});
+interface BatchConfigForm {
+  configId: string;
+  targetValue: string;
+  minValue: string;
+  maxValue: string;
+}
+
+interface BatchForm {
+  batchIndex: number;
+  name: string;
+  numberOfDays: string;
+  notes: string;
+  configs: BatchConfigForm[];
+}
+
+const emptyConfig = (): BatchConfigForm => ({ configId: '', targetValue: '', minValue: '', maxValue: '' });
 
 export function UpdateTemplateModal({ isOpen, onClose, onSubmit, template }: UpdateTemplateModalProps) {
   const [formData, setFormData] = useState({ name: '', eggType: '', description: '', isActive: true });
-  const [batches, setBatches] = useState<BatchRow[]>([]);
-  const [configs, setConfigs] = useState<Config[]>([]);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [batches, setBatches] = useState<BatchForm[]>([]);
+  const [availableConfigs, setAvailableConfigs] = useState<Config[]>([]);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen || !template) return;
-
-    setFormData({
-      name: template.name,
-      eggType: toEggTypeKey(template.eggType),
-      description: template.description ?? '',
-      isActive: template.isActive,
-    });
-    setError(null);
+    setFormData({ name: template.name, eggType: normalizeEggType(template.eggType), description: template.description ?? '', isActive: template.isActive });
     setDetailLoading(true);
-
     Promise.all([
-      configService.list({ pageSize: 100 }),
       hatchingSeasonTemplateService.getById(template.id),
-    ]).then(([configRes, detail]) => {
-      setConfigs(configRes.items ?? []);
-      if (detail?.batches?.length) {
-        setBatches(
-          detail.batches
-            .filter((bd) => bd.batch && bd.batch.status !== 'DELETED')
-            .sort((a, b) => (a.batch!.batchIndex ?? 0) - (b.batch!.batchIndex ?? 0))
-            .map((bd) => ({
-              name: bd.batch!.name ?? '',
-              numberOfDays: String(bd.batch!.numberOfDays ?? ''),
-              notes: bd.batch!.notes ?? '',
-              expanded: false,
-              configs: bd.configs.map((c) => ({
-                configId: c.configId,
-                targetValue: c.targetValue != null ? String(c.targetValue) : '',
-                minValue: c.minValue != null ? String(c.minValue) : '',
-                maxValue: c.maxValue != null ? String(c.maxValue) : '',
-              })),
-            }))
-        );
-      } else {
-        setBatches([]);
+      configService.list({ pageSize: 100 }),
+    ]).then(([detail, cfgResult]) => {
+      setAvailableConfigs(cfgResult.items);
+      if (detail?.batches) {
+        setBatches(detail.batches
+          .filter(bd => bd.batch && bd.batch.status !== 'DELETED')
+          .map(bd => ({
+            batchIndex: bd.batch?.batchIndex ?? 0,
+            name: bd.batch?.name ?? '',
+            numberOfDays: String(bd.batch?.numberOfDays ?? ''),
+            notes: bd.batch?.notes ?? '',
+            configs: bd.configs.map(c => ({
+              configId: c.configId,
+              targetValue: c.targetValue != null ? String(c.targetValue) : '',
+              minValue: c.minValue != null ? String(c.minValue) : '',
+              maxValue: c.maxValue != null ? String(c.maxValue) : '',
+            })),
+          })));
       }
-    }).catch(() => {
-      setConfigs([]);
-      setBatches([]);
-    }).finally(() => setDetailLoading(false));
+    }).catch(() => {}).finally(() => setDetailLoading(false));
   }, [isOpen, template]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -108,29 +83,38 @@ export function UpdateTemplateModal({ isOpen, onClose, onSubmit, template }: Upd
     setFormData({ ...formData, [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value });
   };
 
-  // ── Batch handlers ──
-  const addBatch = () => setBatches((prev) => [...prev, emptyBatch()]);
-  const removeBatch = (i: number) => setBatches((prev) => prev.filter((_, idx) => idx !== i));
-  const toggleBatch = (i: number) =>
-    setBatches((prev) => prev.map((b, idx) => (idx === i ? { ...b, expanded: !b.expanded } : b)));
-  const updateBatch = (i: number, field: keyof Omit<BatchRow, 'configs' | 'expanded'>, value: string) =>
-    setBatches((prev) => prev.map((b, idx) => (idx === i ? { ...b, [field]: value } : b)));
+  const addBatch = () => {
+    const nextIndex = batches.length + 1;
+    setBatches([...batches, { batchIndex: nextIndex, name: '', numberOfDays: '', notes: '', configs: [] }]);
+  };
 
-  // ── Config handlers ──
-  const addConfig = (bi: number) =>
-    setBatches((prev) =>
-      prev.map((b, i) => (i === bi ? { ...b, configs: [...b.configs, emptyConfig()] } : b))
-    );
-  const removeConfig = (bi: number, ci: number) =>
-    setBatches((prev) =>
-      prev.map((b, i) => (i === bi ? { ...b, configs: b.configs.filter((_, idx) => idx !== ci) } : b))
-    );
-  const updateConfig = (bi: number, ci: number, field: keyof BatchConfigRow, value: string) =>
-    setBatches((prev) =>
-      prev.map((b, i) =>
-        i === bi ? { ...b, configs: b.configs.map((c, idx) => (idx === ci ? { ...c, [field]: value } : c)) } : b
-      )
-    );
+  const removeBatch = (i: number) => {
+    setBatches(batches.filter((_, idx) => idx !== i).map((b, idx) => ({ ...b, batchIndex: idx + 1 })));
+  };
+
+  const updateBatch = (i: number, field: keyof Omit<BatchForm, 'configs' | 'batchIndex'>, value: string) => {
+    const updated = [...batches];
+    updated[i] = { ...updated[i], [field]: value };
+    setBatches(updated);
+  };
+
+  const addConfig = (bi: number) => {
+    const updated = [...batches];
+    updated[bi].configs = [...updated[bi].configs, emptyConfig()];
+    setBatches(updated);
+  };
+
+  const removeConfig = (bi: number, ci: number) => {
+    const updated = [...batches];
+    updated[bi].configs = updated[bi].configs.filter((_, idx) => idx !== ci);
+    setBatches(updated);
+  };
+
+  const updateConfig = (bi: number, ci: number, field: keyof BatchConfigForm, value: string) => {
+    const updated = [...batches];
+    updated[bi].configs[ci] = { ...updated[bi].configs[ci], [field]: value };
+    setBatches(updated);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,17 +143,19 @@ export function UpdateTemplateModal({ isOpen, onClose, onSubmit, template }: Upd
         description: formData.description.trim() || undefined,
         eggType: formData.eggType || undefined,
         isActive: formData.isActive,
-        batches: batches.map((b, i) => ({
-          batchIndex: i + 1,
+        batches: batches.map(b => ({
+          batchIndex: b.batchIndex,
           name: b.name.trim() || undefined,
           numberOfDays: Number(b.numberOfDays),
           notes: b.notes.trim() || undefined,
-          configs: b.configs.map((c) => ({
-            configId: c.configId,
-            targetValue: c.targetValue !== '' ? Number(c.targetValue) : undefined,
-            minValue: c.minValue !== '' ? Number(c.minValue) : undefined,
-            maxValue: c.maxValue !== '' ? Number(c.maxValue) : undefined,
-          })),
+          configs: b.configs
+            .filter(c => c.configId)
+            .map(c => ({
+              configId: c.configId,
+              targetValue: c.targetValue ? Number(c.targetValue) : undefined,
+              minValue: c.minValue ? Number(c.minValue) : undefined,
+              maxValue: c.maxValue ? Number(c.maxValue) : undefined,
+            })),
         })),
       });
       onSubmit();
@@ -186,292 +172,133 @@ export function UpdateTemplateModal({ isOpen, onClose, onSubmit, template }: Upd
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-5 rounded-t-2xl z-10">
+        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white p-5 rounded-t-2xl">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">Cập Nhật Template</h2>
-            <button onClick={onClose} className="hover:bg-white/20 rounded-lg p-2 transition-colors">
-              <X size={20} />
-            </button>
+            <div>
+              <h2 className="text-xl font-bold">Cập Nhật Template</h2>
+              <p className="text-purple-100 text-sm mt-1">{template.name}</p>
+            </div>
+            <button onClick={onClose} className="hover:bg-white/20 rounded-lg p-2 transition-colors"><X size={20} /></button>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
-              <AlertCircle size={14} />
-              {error}
-            </div>
-          )}
-
-          {/* Basic info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                Tên Template <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                maxLength={100}
-                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">Loại Trứng</label>
-              <select
-                name="eggType"
-                value={formData.eggType}
-                onChange={handleChange}
-                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="">-- Không chọn --</option>
-                {EGG_TYPE_OPTIONS.map(({ value, label }) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">Mô Tả</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={2}
-                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500"
-                />
-                <span className="text-sm font-medium text-slate-700">Đang hoạt động</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Batches */}
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <Settings size={14} className="text-purple-600" />
-                <span className="text-xs font-semibold text-slate-700">
-                  Các giai đoạn ({batches.length})
-                </span>
+        {detailLoading ? (
+          <div className="p-8 text-center"><div className="animate-spin inline-block w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full" /></div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                <AlertCircle size={14} /> {error}
               </div>
-              <button
-                type="button"
-                onClick={addBatch}
-                className="flex items-center gap-1 px-2.5 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                <Plus size={12} />
-                Thêm giai đoạn
-              </button>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">Tên Template <span className="text-red-500">*</span></label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} maxLength={100} required
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">Loại Trứng</label>
+                <select name="eggType" value={formData.eggType} onChange={handleChange}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                  <option value="">-- Không chọn --</option>
+                  {EGG_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">Mô Tả</label>
+                <textarea name="description" value={formData.description} onChange={handleChange} rows={2}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange}
+                    className="w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500" />
+                  <span className="text-sm font-medium text-slate-700">Đang hoạt động</span>
+                </label>
+              </div>
             </div>
 
-            {detailLoading ? (
-              <div className="flex items-center justify-center gap-2 py-6 text-slate-400 text-xs">
-                <Loader2 size={14} className="animate-spin" />
-                Đang tải giai đoạn...
+            <div className="border-t border-slate-200 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-slate-800">Giai Đoạn Ấp</h3>
+                <button type="button" onClick={addBatch}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                  <Plus size={13} /> Thêm giai đoạn
+                </button>
               </div>
-            ) : batches.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">
-                Chưa có giai đoạn nào — nhấn "Thêm giai đoạn" để cấu hình
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
+
+              {batches.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4 border-2 border-dashed border-slate-200 rounded-lg">
+                  Chưa có giai đoạn nào
+                </p>
+              )}
+
+              <div className="space-y-3">
                 {batches.map((batch, bi) => (
-                  <div key={bi} className="bg-white">
-                    {/* Batch header row */}
-                    <div className="flex items-center justify-between px-4 py-2 bg-purple-50/50">
-                      <button
-                        type="button"
-                        onClick={() => toggleBatch(bi)}
-                        className="flex items-center gap-2 flex-1 text-left"
-                      >
-                        <span className="text-xs font-semibold text-purple-700">
-                          Giai đoạn {bi + 1}{batch.name ? ` — ${batch.name}` : ''}
-                        </span>
-                        {batch.numberOfDays && (
-                          <span className="text-xs text-slate-500">({batch.numberOfDays} ngày)</span>
-                        )}
-                        {batch.expanded
-                          ? <ChevronUp size={14} className="text-slate-400 ml-auto" />
-                          : <ChevronDown size={14} className="text-slate-400 ml-auto" />
-                        }
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeBatch(bi)}
-                        className="ml-2 p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                      >
-                        <Trash2 size={13} />
+                  <div key={bi} className="border border-slate-200 rounded-lg overflow-hidden">
+                    <div className="bg-slate-50 px-3 py-2 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-purple-700">Giai đoạn #{batch.batchIndex}</span>
+                      <button type="button" onClick={() => removeBatch(bi)} className="text-red-400 hover:text-red-600">
+                        <Trash2 size={14} />
                       </button>
                     </div>
-
-                    {batch.expanded && (
-                      <div className="px-4 py-3 space-y-3">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="col-span-2">
-                            <label className="block text-xs font-medium text-slate-600 mb-1">Tên giai đoạn</label>
-                            <input
-                              type="text"
-                              value={batch.name}
-                              onChange={(e) => updateBatch(bi, 'name', e.target.value)}
-                              placeholder="VD: Giai đoạn ấp"
-                              className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">
-                              Số ngày <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="number"
-                              value={batch.numberOfDays}
-                              onChange={(e) => updateBatch(bi, 'numberOfDays', e.target.value)}
-                              placeholder="7"
-                              min="1"
-                              max="365"
-                              className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block text-xs font-medium text-slate-600 mb-1">Ghi chú</label>
-                            <input
-                              type="text"
-                              value={batch.notes}
-                              onChange={(e) => updateBatch(bi, 'notes', e.target.value)}
-                              placeholder="Ghi chú cho giai đoạn này..."
-                              className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                            />
-                          </div>
+                    <div className="p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input placeholder="Tên giai đoạn" value={batch.name} onChange={e => updateBatch(bi, 'name', e.target.value)}
+                          className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                        <input type="number" placeholder="Số ngày *" value={batch.numberOfDays} onChange={e => updateBatch(bi, 'numberOfDays', e.target.value)} min="1" max="365" required
+                          className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                      </div>
+                      <div className="border-t border-slate-100 pt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-slate-600 font-medium">Thông số đo</span>
+                          <button type="button" onClick={() => addConfig(bi)}
+                            className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium">
+                            <Plus size={11} /> Thêm thông số
+                          </button>
                         </div>
-
-                        {/* Configs */}
-                        <div className="border border-slate-200 rounded-lg overflow-hidden">
-                          <div className="flex items-center justify-between px-3 py-2 bg-slate-50">
-                            <span className="text-xs font-medium text-slate-600">
-                              Thông số ({batch.configs.length})
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => addConfig(bi)}
-                              className="flex items-center gap-1 px-2 py-0.5 bg-slate-200 text-slate-700 text-xs rounded hover:bg-slate-300 transition-colors"
-                            >
-                              <Plus size={10} />
-                              Thêm
-                            </button>
-                          </div>
-
-                          {batch.configs.length === 0 ? (
-                            <div className="py-3 text-center text-xs text-slate-400">Chưa có thông số nào</div>
-                          ) : (
-                            <div className="divide-y divide-slate-100">
-                              {batch.configs.map((cfg, ci) => (
-                                <div key={ci} className="px-3 py-2 grid grid-cols-12 gap-2 items-end">
-                                  <div className="col-span-4">
-                                    {ci === 0 && (
-                                      <label className="block text-xs text-slate-500 mb-1">
-                                        Thông số <span className="text-red-500">*</span>
-                                      </label>
-                                    )}
-                                    <select
-                                      value={cfg.configId}
-                                      onChange={(e) => updateConfig(bi, ci, 'configId', e.target.value)}
-                                      className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                                    >
-                                      <option value="">-- Chọn --</option>
-                                      {configs.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                          {c.name}{c.unit ? ` (${c.unit})` : ''}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div className="col-span-2">
-                                    {ci === 0 && <label className="block text-xs text-slate-500 mb-1">Mục tiêu</label>}
-                                    <input
-                                      type="number"
-                                      step="any"
-                                      value={cfg.targetValue}
-                                      onChange={(e) => updateConfig(bi, ci, 'targetValue', e.target.value)}
-                                      placeholder="—"
-                                      className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                                    />
-                                  </div>
-                                  <div className="col-span-2">
-                                    {ci === 0 && <label className="block text-xs text-slate-500 mb-1">Tối thiểu</label>}
-                                    <input
-                                      type="number"
-                                      step="any"
-                                      value={cfg.minValue}
-                                      onChange={(e) => updateConfig(bi, ci, 'minValue', e.target.value)}
-                                      placeholder="—"
-                                      className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                                    />
-                                  </div>
-                                  <div className="col-span-2">
-                                    {ci === 0 && <label className="block text-xs text-slate-500 mb-1">Tối đa</label>}
-                                    <input
-                                      type="number"
-                                      step="any"
-                                      value={cfg.maxValue}
-                                      onChange={(e) => updateConfig(bi, ci, 'maxValue', e.target.value)}
-                                      placeholder="—"
-                                      className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                                    />
-                                  </div>
-                                  <div className="col-span-2 flex justify-end items-end">
-                                    <button
-                                      type="button"
-                                      onClick={() => removeConfig(bi, ci)}
-                                      className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
+                        {batch.configs.length === 0 && <p className="text-xs text-slate-400 italic">Chưa có thông số</p>}
+                        <div className="space-y-1.5">
+                          {batch.configs.map((cfg, ci) => (
+                            <div key={ci} className="grid grid-cols-[1fr_70px_70px_70px_auto] gap-1.5 items-center">
+                              <select value={cfg.configId} onChange={e => updateConfig(bi, ci, 'configId', e.target.value)}
+                                className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400">
+                                <option value="">-- Chọn thông số --</option>
+                                {availableConfigs.map(c => (
+                                  <option key={c.id} value={c.id}>{c.name}{c.unit ? ` (${c.unit})` : ''}</option>
+                                ))}
+                              </select>
+                              <input type="number" placeholder="Target" value={cfg.targetValue} onChange={e => updateConfig(bi, ci, 'targetValue', e.target.value)}
+                                className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                              <input type="number" placeholder="Min" value={cfg.minValue} onChange={e => updateConfig(bi, ci, 'minValue', e.target.value)}
+                                className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                              <input type="number" placeholder="Max" value={cfg.maxValue} onChange={e => updateConfig(bi, ci, 'maxValue', e.target.value)}
+                                className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
+                              <button type="button" onClick={() => removeConfig(bi, ci)} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="flex gap-3 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors font-medium"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={loading || detailLoading}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-sm rounded-lg hover:from-purple-700 hover:to-purple-800 transition-colors font-medium shadow-lg disabled:opacity-50"
-            >
-              {loading ? 'Đang lưu...' : 'Cập Nhật'}
-            </button>
-          </div>
-        </form>
+            <div className="flex gap-3 pt-4 border-t border-slate-200">
+              <button type="button" onClick={onClose}
+                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                Hủy
+              </button>
+              <button type="submit" disabled={loading}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-sm rounded-lg hover:from-purple-700 hover:to-purple-800 transition-colors font-medium shadow-lg disabled:opacity-50">
+                {loading ? 'Đang lưu...' : 'Cập Nhật'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

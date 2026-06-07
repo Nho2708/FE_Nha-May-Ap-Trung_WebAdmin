@@ -3,7 +3,7 @@ import type { UserRole } from "@/types/user";
 export type ResourceKey =
   | "users"
   | "incubators"
-  | "incubator_models"   // ← mới thêm
+  | "incubator_models"
   | "orders"
   | "templates"
   | "maintenance"

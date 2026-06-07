@@ -6,6 +6,7 @@ import { DeviceManagement } from "./components/device-management";
 import { IncubatorModelManagement } from "./components/incubator-model-management";  // ← mới
 import { SalesOrders } from "./components/sales-orders";
 import { TemplateManagement } from "./components/template-management";
+import { HatchingSeasons } from "./components/hatching-seasons";
 import { MaintenanceTickets } from "./components/maintenance-tickets";
 import { UserStaffManagement } from "./components/user-staff-management";
 import { WarrantyManagement } from "./components/warranty-management";
@@ -60,6 +61,8 @@ export default function App() {
         return <SalesOrders />;
       case "templates":
         return <TemplateManagement />;
+      case "hatching-seasons":
+        return <HatchingSeasons />;
       case "maintenance":
         return <MaintenanceTickets />;
       case "users":
