@@ -1,6 +1,7 @@
 import {
   Box,
   FileText,
+  Egg,
   LayoutDashboard,
   Settings,
   Shield,
@@ -14,9 +15,10 @@ import type { UserRole } from "@/types/user";
 export type PageType =
   | "dashboard"
   | "devices"
-  | "incubator-models"   // ← mới thêm
+  | "incubator-models"
   | "sales"
   | "templates"
+  | "hatching-seasons"
   | "maintenance"
   | "users"
   | "warranty";
@@ -57,6 +59,12 @@ export const navigationItems: NavigationItem[] = [
     id: "templates",
     label: "Template Ấp",
     icon: FileText,
+    roles: ["ADMIN", "TECHNICIAN"],
+  },
+  {
+    id: "hatching-seasons",
+    label: "Mùa Ấp",
+    icon: Egg,
     roles: ["ADMIN", "TECHNICIAN"],
   },
   {

@@ -1,4 +1,4 @@
-export type OrderStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "CANCELLED";
+export type OrderStatus = "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED";
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "EXPIRED";
 export type OrderItemStatus = "PENDING_ASSIGNMENT" | "ASSIGNED" | "CANCELLED";
 
