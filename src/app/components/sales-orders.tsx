@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Package, CheckCircle, XCircle, Clock, RefreshCw, AlertCircle, QrCode } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Package, CheckCircle, XCircle, Clock, RefreshCw, AlertCircle, QrCode, Truck } from 'lucide-react';
 import { CreateOrderModal } from './create-order-modal';
 import { UpdateOrderModal } from './update-order-modal';
 import { PaymentQRModal } from './payment-qr-modal';
@@ -13,6 +13,7 @@ import type { SalesOrder, OrderStatus } from '@/types/order';
 const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: React.ElementType }> = {
   PENDING: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   PROCESSING: { label: 'Đang xử lý', color: 'bg-blue-100 text-blue-800', icon: Package },
+  SHIPPED: { label: 'Đã gửi ship', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
   COMPLETED: { label: 'Hoàn thành', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   CANCELLED: { label: 'Đã hủy', color: 'bg-red-100 text-red-800', icon: XCircle },
 };
@@ -29,6 +30,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'Tất cả' },
   { value: 'PENDING', label: 'Chờ xử lý' },
   { value: 'PROCESSING', label: 'Đang xử lý' },
+  { value: 'SHIPPED', label: 'Đã gửi ship' },
   { value: 'COMPLETED', label: 'Hoàn thành' },
   { value: 'CANCELLED', label: 'Đã hủy' },
 ];
@@ -62,6 +64,8 @@ export function SalesOrders() {
   const [qrOrder, setQrOrder] = useState<SalesOrder | null>(null);
 
   const pageSize = 10;
+  const listIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const qrIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchOrders = useCallback(async (page = 1, status = '') => {
     setLoading(true);
@@ -78,9 +82,36 @@ export function SalesOrders() {
     }
   }, []);
 
+  // Poll danh sách 5s, dừng khi QR đang mở
   useEffect(() => {
     fetchOrders(currentPage, statusFilter);
-  }, [fetchOrders, currentPage, statusFilter]);
+    if (qrOrder) return;
+    listIntervalRef.current = setInterval(() => {
+      fetchOrders(currentPage, statusFilter);
+    }, 10000);
+    return () => {
+      if (listIntervalRef.current) clearInterval(listIntervalRef.current);
+    };
+  }, [fetchOrders, currentPage, statusFilter, qrOrder]);
+
+  // Poll payment status khi QR mở
+  useEffect(() => {
+    if (!qrOrder) return;
+    qrIntervalRef.current = setInterval(async () => {
+      try {
+        const detail = await orderService.getById(qrOrder.id);
+        if (detail?.order?.paymentStatus === 'PAID') {
+          setQrOrder(null);
+          fetchOrders(currentPage, statusFilter);
+        }
+      } catch {
+        // silent — không làm gián đoạn UX
+      }
+    }, 10000);
+    return () => {
+      if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
+    };
+  }, [qrOrder, currentPage, statusFilter, fetchOrders]);
 
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);

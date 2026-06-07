@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, CheckCircle, XCircle, AlertCircle, Wrench } from 'lucide-react';
+import { X, Package, CheckCircle, XCircle, AlertCircle, Wrench, Truck } from 'lucide-react';
 import { orderService } from '@/services/orders';
 import { incubatorService } from '@/services/incubators';
 import { incubatorModelService } from '@/services/incubatorModels';
@@ -18,6 +18,7 @@ interface UpdateOrderModalProps {
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Chờ xử lý',
   PROCESSING: 'Đang xử lý',
+  SHIPPED: 'Đã gửi ship',
   COMPLETED: 'Hoàn thành',
   CANCELLED: 'Đã hủy',
 };
@@ -89,6 +90,20 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
       loadDetail();
     }
   }, [isOpen, order]);
+
+  const handleShip = async () => {
+    if (!order) return;
+    setActionLoading('ship');
+    setError(null);
+    try {
+      await orderService.ship(order.id);
+      onSubmit();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể xác nhận gửi ship');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleComplete = async () => {
     if (!order) return;
@@ -173,7 +188,8 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
   if (!isOpen || !order) return null;
 
   const canEdit = can(role, 'orders', 'edit');
-  const canComplete = canEdit && order.status === 'PROCESSING';
+  const canShip = canEdit && order.status === 'PROCESSING';
+  const canComplete = canEdit && order.status === 'SHIPPED';
   const canCancel = canEdit && (order.status === 'PENDING' || order.status === 'PROCESSING');
   const canAssign = canEdit && order.paymentStatus === 'PAID';
 
@@ -368,6 +384,17 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
                 {actionLoading === 'cancel' ? 'Đang hủy...' : 'Hủy Đơn'}
               </button>
             )}
+            {canShip && (
+              <button
+                type="button"
+                onClick={handleShip}
+                disabled={actionLoading === 'ship'}
+                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Truck size={16} />
+                {actionLoading === 'ship' ? 'Đang xử lý...' : 'Gửi Ship'}
+              </button>
+            )}
             {canComplete && (
               <button
                 type="button"
@@ -376,7 +403,7 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
                 className="flex-1 px-4 py-2.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <CheckCircle size={16} />
-                {actionLoading === 'complete' ? 'Đang xử lý...' : 'Hoàn Thành'}
+                {actionLoading === 'complete' ? 'Đang xử lý...' : 'Đã Nhận'}
               </button>
             )}
           </div>

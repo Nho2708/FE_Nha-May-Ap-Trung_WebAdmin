@@ -35,6 +35,9 @@ export const orderService = {
   createByGuest(payload: CreateOrderByGuestPayload) {
     return http.post<CreateOrderResponse>("/orders/guest", payload);
   },
+  ship(orderId: string) {
+    return http.post<boolean>(`/orders/${orderId}/ship`);
+  },
   complete(orderId: string) {
     return http.post<boolean>(`/orders/${orderId}/complete`);
   },
