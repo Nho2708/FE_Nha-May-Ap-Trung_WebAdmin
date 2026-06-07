@@ -5,6 +5,10 @@ pipeline {
         nodejs 'Node 20'
     }
 
+    environment {
+        NODE_OPTIONS = '--max-old-space-size=4096'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -14,9 +18,15 @@ pipeline {
             }
         }
 
+        stage('Clean Workspace') {
+            steps {
+                bat 'if exist node_modules rmdir /s /q node_modules'
+            }
+        }
+
         stage('Install') {
             steps {
-                bat 'npm ci'
+                bat 'npm install --prefer-offline'
             }
         }
 
