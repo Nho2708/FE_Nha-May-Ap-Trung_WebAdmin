@@ -61,7 +61,7 @@ export const navigationItems: NavigationItem[] = [
   },
   {
     id: "maintenance",
-    label: "Bảo Trì",
+    label: "Hỗ Trợ Kỹ Thuật",
     icon: Wrench,
     roles: ["ADMIN", "TECHNICIAN"],
   },

@@ -20,8 +20,7 @@ export interface HatchingSeasonTemplateBatch {
   templateId: string;
   batchIndex: number;
   name: string | null;
-  dayStart: number;
-  dayEnd: number;
+  numberOfDays: number;
   notes: string | null;
   status: BaseStatus;
   createdAt: string;
@@ -58,8 +57,6 @@ export interface BatchConfigItemPayload {
 export interface TemplateBatchItemPayload {
   batchIndex: number;
   name?: string;
-  dayStart: number;
-  dayEnd: number;
   numberOfDays: number;
   notes?: string;
   configs?: BatchConfigItemPayload[];

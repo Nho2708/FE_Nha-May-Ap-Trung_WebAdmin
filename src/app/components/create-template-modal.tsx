@@ -18,8 +18,7 @@ interface BatchConfigRow {
 
 interface BatchRow {
   name: string;
-  dayStart: string;
-  dayEnd: string;
+  numberOfDays: string;
   notes: string;
   configs: BatchConfigRow[];
   expanded: boolean;
@@ -29,8 +28,7 @@ const EGG_TYPES = ['Gà', 'Vịt', 'Ngỗng', 'Chim', 'Đà điểu', 'Cút', 'K
 
 const emptyBatch = (): BatchRow => ({
   name: '',
-  dayStart: '',
-  dayEnd: '',
+  numberOfDays: '',
   notes: '',
   configs: [],
   expanded: true,
@@ -131,12 +129,8 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
     // Validate batches
     for (let i = 0; i < batches.length; i++) {
       const b = batches[i];
-      if (!b.dayStart || !b.dayEnd) {
-        setError(`Giai đoạn ${i + 1}: vui lòng nhập ngày bắt đầu và kết thúc`);
-        return;
-      }
-      if (Number(b.dayStart) >= Number(b.dayEnd)) {
-        setError(`Giai đoạn ${i + 1}: ngày bắt đầu phải nhỏ hơn ngày kết thúc`);
+      if (!b.numberOfDays || Number(b.numberOfDays) < 1) {
+        setError(`Giai đoạn ${i + 1}: số ngày phải ít nhất là 1`);
         return;
       }
       for (let j = 0; j < b.configs.length; j++) {
@@ -158,9 +152,7 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
         batches: batches.map((b, i) => ({
           batchIndex: i + 1,
           name: b.name.trim() || undefined,
-          dayStart: Number(b.dayStart),
-          dayEnd: Number(b.dayEnd),
-          numberOfDays: Number(b.dayEnd) - Number(b.dayStart),
+          numberOfDays: Number(b.numberOfDays),
           notes: b.notes.trim() || undefined,
           configs: b.configs.map((c) => ({
             configId: c.configId,
@@ -340,10 +332,8 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
                         <span className="text-xs font-semibold text-purple-700">
                           Giai đoạn {bi + 1}{batch.name ? ` — ${batch.name}` : ''}
                         </span>
-                        {batch.dayStart && batch.dayEnd && (
-                          <span className="text-xs text-slate-500">
-                            (Ngày {batch.dayStart} → {batch.dayEnd})
-                          </span>
+                        {batch.numberOfDays && (
+                          <span className="text-xs text-slate-500">({batch.numberOfDays} ngày)</span>
                         )}
                         {batch.expanded ? (
                           <ChevronUp size={14} className="text-slate-400 ml-auto" />
@@ -376,28 +366,15 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-slate-600 mb-1">
-                              Ngày bắt đầu <span className="text-red-500">*</span>
+                              Số ngày <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="number"
-                              value={batch.dayStart}
-                              onChange={(e) => updateBatch(bi, 'dayStart', e.target.value)}
-                              placeholder="1"
-                              min="1"
-                              className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">
-                              Ngày kết thúc <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="number"
-                              value={batch.dayEnd}
-                              onChange={(e) => updateBatch(bi, 'dayEnd', e.target.value)}
+                              value={batch.numberOfDays}
+                              onChange={(e) => updateBatch(bi, 'numberOfDays', e.target.value)}
                               placeholder="7"
                               min="1"
+                              max="365"
                               className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
                               required
                             />
@@ -524,7 +501,7 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
             </div>
             <p className="font-semibold text-slate-800 text-sm">{formData.name || 'Tên template'}</p>
             <p className="text-xs text-slate-500">
-              {formData.eggType || '—'} · {formData.totalDays ? `${formData.totalDays} ngày` : '— ngày'} · {batches.length} giai đoạn
+              {formData.eggType || '—'} · {formData.totalDays ? `${formData.totalDays} ngày` : '— ngày'} · {batches.length} giai đoạn ({batches.reduce((s, b) => s + (Number(b.numberOfDays) || 0), 0)} ngày tổng)
             </p>
             {formData.description && (
               <p className="text-xs text-slate-600 mt-1">{formData.description}</p>
