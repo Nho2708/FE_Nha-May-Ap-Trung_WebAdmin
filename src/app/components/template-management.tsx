@@ -11,14 +11,16 @@ import { configService, type Config } from '@/services/configs';
 import type { HatchingSeasonTemplate, HatchingSeasonTemplateDetail } from '@/types/hatching';
 
 const EGG_TYPE_ICONS: Record<string, string> = {
-  'Gà': '🐔',
-  'Vịt': '🦆',
-  'Ngỗng': '🦢',
-  'Chim': '🐦',
-  'Đà điểu': '🦤',
+  'Gà': '🐔', 'Vịt': '🦆', 'Ngỗng': '🦢', 'Chim': '🐦', 'Đà điểu': '🦤', 'Cút': '🐦',
+  'CHICKEN': '🐔', 'DUCK': '🦆', 'QUAIL': '🐦', 'PIGEON': '🕊️',
+};
+
+const EGG_TYPE_LABELS: Record<string, string> = {
+  'CHICKEN': 'Gà', 'DUCK': 'Vịt', 'QUAIL': 'Cút', 'PIGEON': 'Bồ câu',
 };
 
 const getEggIcon = (eggType: string | null) => EGG_TYPE_ICONS[eggType ?? ''] ?? '🥚';
+const getEggLabel = (eggType: string | null) => EGG_TYPE_LABELS[eggType ?? ''] ?? eggType ?? '';
 
 export function TemplateManagement() {
   const session = useSession();
@@ -48,8 +50,10 @@ export function TemplateManagement() {
       setTemplates(result.items);
       setTotalItems(result.totalItems);
       setTotalPages(result.totalPages);
+      return result.items as HatchingSeasonTemplate[];
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách template');
+      return [] as HatchingSeasonTemplate[];
     } finally {
       setLoading(false);
     }
@@ -82,11 +86,14 @@ export function TemplateManagement() {
     setCurrentPage(1);
   };
 
-  const handleUpdated = () => {
-    fetchTemplates(currentPage);
+  const handleUpdated = async () => {
+    const prevSelected = selectedTemplate;
+    const freshList = await fetchTemplates(currentPage);
     setIsUpdateModalOpen(false);
-    if (selectedTemplate) handleSelectTemplate(selectedTemplate);
-    else setSelectedTemplate(null);
+    if (prevSelected) {
+      const fresh = freshList.find((t) => t.id === prevSelected.id);
+      await handleSelectTemplate(fresh ?? prevSelected);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -175,7 +182,7 @@ export function TemplateManagement() {
                           )}
                         </div>
                         {template.eggType && (
-                          <p className="text-xs text-slate-600">Loại: {template.eggType}</p>
+                          <p className="text-xs text-slate-600">Loại: {getEggLabel(template.eggType)}</p>
                         )}
                       </div>
                     </div>
@@ -252,7 +259,7 @@ export function TemplateManagement() {
                 <span className="text-5xl mb-2 block">{getEggIcon(selectedTemplate.eggType)}</span>
                 <h3 className="text-base font-semibold text-slate-800">{selectedTemplate.name}</h3>
                 {selectedTemplate.eggType && (
-                  <p className="text-xs text-slate-600 mt-0.5">{selectedTemplate.eggType}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">{getEggLabel(selectedTemplate.eggType)}</p>
                 )}
               </div>
 
@@ -312,7 +319,7 @@ export function TemplateManagement() {
                               Giai đoạn {idx + 1}{batch.name ? ` — ${batch.name}` : ''}
                             </span>
                             <span className="text-xs text-slate-500">
-                              Ngày {batch.dayStart} → {batch.dayEnd}
+                              {batch.numberOfDays} ngày
                             </span>
                           </div>
                           {batch.notes && (

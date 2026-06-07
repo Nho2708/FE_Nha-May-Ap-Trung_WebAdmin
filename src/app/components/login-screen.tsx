@@ -34,14 +34,14 @@ export function LoginScreen() {
               Web Admin cho hệ thống máy ấp trứng và vận hành hậu mãi.
             </h1>
             <p className="mt-4 text-slate-300 text-base leading-7">
-              Tập trung quản lý người dùng, bảo trì thiết bị và theo dõi vận hành trên một giao diện thống nhất.
+              Tập trung quản lý người dùng, hỗ trợ kỹ thuật và theo dõi vận hành trên một giao diện thống nhất.
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <StatCard label="Tài khoản" value="Bảo mật" />
             <StatCard label="Nhân sự" value="Quản lý" />
-            <StatCard label="Bảo trì" value="Theo dõi" />
+            <StatCard label="Kỹ thuật" value="Hỗ trợ" />
           </div>
         </div>
 

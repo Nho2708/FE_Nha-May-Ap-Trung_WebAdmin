@@ -60,18 +60,20 @@ export function UpdateTemplateModal({ isOpen, onClose, onSubmit, template }: Upd
     ]).then(([detail, cfgResult]) => {
       setAvailableConfigs(cfgResult.items);
       if (detail?.batches) {
-        setBatches(detail.batches.map(bd => ({
-          batchIndex: bd.batch?.batchIndex ?? 0,
-          name: bd.batch?.name ?? '',
-          numberOfDays: String(bd.batch?.numberOfDays ?? ''),
-          notes: bd.batch?.notes ?? '',
-          configs: bd.configs.map(c => ({
-            configId: c.configId,
-            targetValue: c.targetValue != null ? String(c.targetValue) : '',
-            minValue: c.minValue != null ? String(c.minValue) : '',
-            maxValue: c.maxValue != null ? String(c.maxValue) : '',
-          })),
-        })));
+        setBatches(detail.batches
+          .filter(bd => bd.batch && bd.batch.status !== 'DELETED')
+          .map(bd => ({
+            batchIndex: bd.batch?.batchIndex ?? 0,
+            name: bd.batch?.name ?? '',
+            numberOfDays: String(bd.batch?.numberOfDays ?? ''),
+            notes: bd.batch?.notes ?? '',
+            configs: bd.configs.map(c => ({
+              configId: c.configId,
+              targetValue: c.targetValue != null ? String(c.targetValue) : '',
+              minValue: c.minValue != null ? String(c.minValue) : '',
+              maxValue: c.maxValue != null ? String(c.maxValue) : '',
+            })),
+          })));
       }
     }).catch(() => {}).finally(() => setDetailLoading(false));
   }, [isOpen, template]);
@@ -117,6 +119,22 @@ export function UpdateTemplateModal({ isOpen, onClose, onSubmit, template }: Upd
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!template) return;
+
+    for (let i = 0; i < batches.length; i++) {
+      const b = batches[i];
+      const days = Number(b.numberOfDays);
+      if (!b.numberOfDays || isNaN(days) || days < 1) {
+        setError(`Giai đoạn ${i + 1}: số ngày phải ít nhất là 1`);
+        return;
+      }
+      for (let j = 0; j < b.configs.length; j++) {
+        if (!b.configs[j].configId) {
+          setError(`Giai đoạn ${i + 1} - Thông số ${j + 1}: vui lòng chọn thông số`);
+          return;
+        }
+      }
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -202,7 +220,6 @@ export function UpdateTemplateModal({ isOpen, onClose, onSubmit, template }: Upd
               </div>
             </div>
 
-            {/* Giai đoạn ấp */}
             <div className="border-t border-slate-200 pt-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-slate-800">Giai Đoạn Ấp</h3>

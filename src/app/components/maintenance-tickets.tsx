@@ -470,7 +470,7 @@ export function MaintenanceTickets() {
       setCurrentPage(1);
       await Promise.all([loadStats(), loadTickets(1, filterStatus)]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể tạo ticket bảo trì.");
+      setError(err instanceof Error ? err.message : "Không thể tạo ticket hỗ trợ kỹ thuật.");
     } finally {
       setActionLoading(false);
     }
@@ -482,7 +482,7 @@ export function MaintenanceTickets() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-800">Hệ Thống Bảo Trì</h2>
+        <h2 className="text-xl font-bold text-slate-800">Hỗ Trợ Kỹ Thuật</h2>
         <div className="flex items-center gap-2">
           {can(role, "maintenance", "create") && (
             <button
@@ -996,7 +996,7 @@ function CreateMaintenanceTicketPanel({
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
-      title="Tạo Ticket Bảo Trì"
+      title="Tạo Ticket Hỗ Trợ Kỹ Thuật"
       description="Ghi nhận sự cố và phân công kỹ thuật viên nếu đã xác định."
     >
       <form onSubmit={handleSubmit} className="space-y-5">
