@@ -10,15 +10,22 @@ import { hatchingSeasonTemplateService } from '@/services/hatchingSeasonTemplate
 import { configService, type Config } from '@/services/configs';
 import type { HatchingSeasonTemplate, HatchingSeasonTemplateDetail } from '@/types/hatching';
 
+const EGG_TYPE_LABEL: Record<string, string> = {
+  CHICKEN: 'Gà',
+  DUCK: 'Vịt',
+  QUAIL: 'Cút',
+  PIGEON: 'Bồ câu',
+};
+
 const EGG_TYPE_ICONS: Record<string, string> = {
-  'Gà': '🐔',
-  'Vịt': '🦆',
-  'Ngỗng': '🦢',
-  'Chim': '🐦',
-  'Đà điểu': '🦤',
+  CHICKEN: '🐔',
+  DUCK: '🦆',
+  QUAIL: '🐦',
+  PIGEON: '🕊️',
 };
 
 const getEggIcon = (eggType: string | null) => EGG_TYPE_ICONS[eggType ?? ''] ?? '🥚';
+const getEggLabel = (eggType: string | null) => EGG_TYPE_LABEL[eggType ?? ''] ?? eggType ?? '—';
 
 export function TemplateManagement() {
   const session = useSession();
@@ -175,7 +182,7 @@ export function TemplateManagement() {
                           )}
                         </div>
                         {template.eggType && (
-                          <p className="text-xs text-slate-600">Loại: {template.eggType}</p>
+                          <p className="text-xs text-slate-600">Loại: {getEggLabel(template.eggType)}</p>
                         )}
                       </div>
                     </div>
@@ -252,7 +259,7 @@ export function TemplateManagement() {
                 <span className="text-5xl mb-2 block">{getEggIcon(selectedTemplate.eggType)}</span>
                 <h3 className="text-base font-semibold text-slate-800">{selectedTemplate.name}</h3>
                 {selectedTemplate.eggType && (
-                  <p className="text-xs text-slate-600 mt-0.5">{selectedTemplate.eggType}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">{getEggLabel(selectedTemplate.eggType)}</p>
                 )}
               </div>
 

@@ -253,11 +253,11 @@ export function UpdateTemplateModal({ isOpen, onClose, onSubmit, template }: Upd
                                   <option key={c.id} value={c.id}>{c.name}{c.unit ? ` (${c.unit})` : ''}</option>
                                 ))}
                               </select>
-                              <input type="number" placeholder="Target" value={cfg.targetValue} onChange={e => updateConfig(bi, ci, 'targetValue', e.target.value)}
+                              <input type="number" placeholder="Mục tiêu" value={cfg.targetValue} onChange={e => updateConfig(bi, ci, 'targetValue', e.target.value)}
                                 className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
-                              <input type="number" placeholder="Min" value={cfg.minValue} onChange={e => updateConfig(bi, ci, 'minValue', e.target.value)}
+                              <input type="number" placeholder="Tối thiểu" value={cfg.minValue} onChange={e => updateConfig(bi, ci, 'minValue', e.target.value)}
                                 className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
-                              <input type="number" placeholder="Max" value={cfg.maxValue} onChange={e => updateConfig(bi, ci, 'maxValue', e.target.value)}
+                              <input type="number" placeholder="Tối đa" value={cfg.maxValue} onChange={e => updateConfig(bi, ci, 'maxValue', e.target.value)}
                                 className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
                               <button type="button" onClick={() => removeConfig(bi, ci)} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
                             </div>

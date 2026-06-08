@@ -47,4 +47,7 @@ export const orderService = {
   assignIncubator(orderId: string, payload: AssignIncubatorPayload) {
     return http.post<boolean>(`/orders/${orderId}/items/assign`, payload);
   },
+  resendVerification(orderId: string) {
+    return http.post<boolean>(`/orders/${orderId}/resend-verification`);
+  },
 };

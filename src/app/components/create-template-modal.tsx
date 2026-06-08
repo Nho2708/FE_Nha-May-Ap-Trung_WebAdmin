@@ -39,7 +39,6 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
     name: '',
     eggType: '',
     description: '',
-    createdByType: 'TECHNICIAN',
   });
   const [batches, setBatches] = useState<BatchForm[]>([]);
   const [availableConfigs, setAvailableConfigs] = useState<Config[]>([]);
@@ -98,26 +97,16 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
       setError('Tên template không được để trống');
       return;
     }
-    const totalDaysNum = Number(formData.totalDays);
-    if (!formData.totalDays || totalDaysNum < 1 || totalDaysNum > 365) {
-      setError('Tổng số ngày ấp phải từ 1 đến 365');
-      return;
-    }
 
-    // Validate batches
     for (let i = 0; i < batches.length; i++) {
       const b = batches[i];
-      if (!b.dayStart || !b.dayEnd) {
-        setError(`Giai đoạn ${i + 1}: vui lòng nhập ngày bắt đầu và kết thúc`);
-        return;
-      }
-      if (Number(b.dayStart) >= Number(b.dayEnd)) {
-        setError(`Giai đoạn ${i + 1}: ngày bắt đầu phải nhỏ hơn ngày kết thúc`);
+      if (!b.numberOfDays || Number(b.numberOfDays) < 1) {
+        setError(`Giai đoạn ${i + 1}: vui lòng nhập số ngày hợp lệ`);
         return;
       }
       for (let j = 0; j < b.configs.length; j++) {
         if (!b.configs[j].configId) {
-          setError(`Giai đoạn ${i + 1} - Config ${j + 1}: vui lòng chọn thông số`);
+          setError(`Giai đoạn ${i + 1} - Thông số ${j + 1}: vui lòng chọn thông số`);
           return;
         }
       }
@@ -129,7 +118,7 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         eggType: formData.eggType || undefined,
-        createdByType: formData.createdByType,
+        createdByType: 'TECHNICIAN',
         batches: batches.map(b => ({
           batchIndex: b.batchIndex,
           name: b.name.trim() || undefined,
@@ -144,10 +133,11 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
               maxValue: c.maxValue ? Number(c.maxValue) : undefined,
             })),
         })),
-      });
+      };
+      await hatchingSeasonTemplateService.create(payload);
       onSubmit();
       onClose();
-      setFormData({ name: '', eggType: '', description: '', createdByType: 'TECHNICIAN' });
+      setFormData({ name: '', eggType: '', description: '' });
       setBatches([]);
     } catch (err: unknown) {
       console.error('[CreateTemplate]', err);
@@ -169,7 +159,7 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
               <h2 className="text-lg font-bold">Tạo Template Mới</h2>
               <p className="text-purple-100 text-xs mt-0.5">Cấu hình thông số ấp trứng</p>
             </div>
-            <button onClick={handleClose} className="hover:bg-white/20 rounded-lg p-1.5 transition-colors">
+            <button onClick={onClose} className="hover:bg-white/20 rounded-lg p-1.5 transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -196,18 +186,6 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
                 <option value="">-- Chọn loại trứng --</option>
                 {EGG_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1.5">Tạo Bởi <span className="text-red-500">*</span></label>
-              <div className="flex gap-3">
-                {[{ value: 'TECHNICIAN', label: 'Kỹ thuật viên (công khai)' }, { value: 'CUSTOMER', label: 'Khách hàng (cá nhân)' }].map(opt => (
-                  <label key={opt.value} className={`flex-1 flex items-center p-2.5 border-2 rounded-lg cursor-pointer transition-all ${
-                    formData.createdByType === opt.value ? 'border-purple-500 bg-purple-50' : 'border-slate-200 hover:border-purple-300'}`}>
-                    <input type="radio" name="createdByType" value={opt.value} checked={formData.createdByType === opt.value} onChange={handleChange} className="sr-only" />
-                    <span className="text-xs font-medium text-slate-800">{opt.label}</span>
-                  </label>
-                ))}
-              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-slate-700 mb-1.5">Mô Tả</label>
@@ -271,11 +249,11 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
                                 <option key={c.id} value={c.id}>{c.name}{c.unit ? ` (${c.unit})` : ''}</option>
                               ))}
                             </select>
-                            <input type="number" placeholder="Target" value={cfg.targetValue} onChange={e => updateConfig(bi, ci, 'targetValue', e.target.value)}
+                            <input type="number" placeholder="Mục tiêu" value={cfg.targetValue} onChange={e => updateConfig(bi, ci, 'targetValue', e.target.value)}
                               className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
-                            <input type="number" placeholder="Min" value={cfg.minValue} onChange={e => updateConfig(bi, ci, 'minValue', e.target.value)}
+                            <input type="number" placeholder="Tối thiểu" value={cfg.minValue} onChange={e => updateConfig(bi, ci, 'minValue', e.target.value)}
                               className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
-                            <input type="number" placeholder="Max" value={cfg.maxValue} onChange={e => updateConfig(bi, ci, 'maxValue', e.target.value)}
+                            <input type="number" placeholder="Tối đa" value={cfg.maxValue} onChange={e => updateConfig(bi, ci, 'maxValue', e.target.value)}
                               className="px-2 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
                             <button type="button" onClick={() => removeConfig(bi, ci)} className="text-slate-400 hover:text-red-500">
                               <X size={14} />
