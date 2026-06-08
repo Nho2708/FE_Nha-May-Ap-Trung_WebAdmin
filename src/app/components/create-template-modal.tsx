@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { X, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { hatchingSeasonTemplateService } from '@/services/hatchingSeasonTemplates';
 import { configService, type Config } from '@/services/configs';
-import { useSession } from '@/hooks/use-session';
 
 interface CreateTemplateModalProps {
   isOpen: boolean;
@@ -101,7 +100,7 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
     for (let i = 0; i < batches.length; i++) {
       const b = batches[i];
       if (!b.numberOfDays || Number(b.numberOfDays) < 1) {
-        setError(`Giai đoạn ${i + 1}: vui lòng nhập số ngày hợp lệ`);
+        setError(`Giai đoạn ${i + 1}: số ngày phải ít nhất là 1`);
         return;
       }
       for (let j = 0; j < b.configs.length; j++) {
@@ -114,9 +113,10 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
 
     setLoading(true);
     try {
-      const payload = {
+      await hatchingSeasonTemplateService.create({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
+        totalDays: batches.reduce((s, b) => s + (Number(b.numberOfDays) || 0), 0),
         eggType: formData.eggType || undefined,
         createdByType: 'TECHNICIAN',
         batches: batches.map(b => ({
@@ -140,9 +140,7 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
       setFormData({ name: '', eggType: '', description: '' });
       setBatches([]);
     } catch (err: unknown) {
-      console.error('[CreateTemplate]', err);
-      const msg = err instanceof Error ? err.message : 'Không thể tạo template';
-      setError(msg);
+      setError(err instanceof Error ? err.message : 'Không thể tạo template');
     } finally {
       setLoading(false);
     }
@@ -172,7 +170,6 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
             </div>
           )}
 
-          {/* Thông tin cơ bản */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-slate-700 mb-1.5">Tên Template <span className="text-red-500">*</span></label>
@@ -194,7 +191,6 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
             </div>
           </div>
 
-          {/* Giai đoạn ấp */}
           <div className="border-t border-slate-200 pt-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-slate-800">Giai Đoạn Ấp</h3>
@@ -227,7 +223,6 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
                         className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400" />
                     </div>
 
-                    {/* Configs */}
                     <div className="border-t border-slate-100 pt-2">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-slate-600 font-medium">Thông số đo</span>

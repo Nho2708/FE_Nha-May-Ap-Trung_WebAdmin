@@ -20,7 +20,7 @@ const quickQuestions = [
   'Tổng quan hệ thống?',
   'Thiết bị có lỗi không?',
   'Tình trạng đơn hàng?',
-  'Bảo trì gần đây?',
+  'Hỗ trợ kỹ thuật gần đây?',
 ];
 
 export function AIChat({ onClose }: { onClose: () => void }) {
