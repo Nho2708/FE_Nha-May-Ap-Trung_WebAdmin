@@ -75,7 +75,6 @@ export function LoginScreen() {
                     onChange={(event) => setUsername(event.target.value)}
                     className="w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     placeholder="Nhập tên đăng nhập"
-                    maxLength={15}
                     required
                   />
                 </div>
@@ -90,7 +89,6 @@ export function LoginScreen() {
                     onChange={(event) => setPassword(event.target.value)}
                     className="w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     placeholder="Nhập mật khẩu"
-                    maxLength={20}
                     required
                   />
                 </div>

@@ -13,7 +13,7 @@ import type { SalesOrder, OrderStatus } from '@/types/order';
 const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: React.ElementType }> = {
   PENDING: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   PROCESSING: { label: 'Đang xử lý', color: 'bg-blue-100 text-blue-800', icon: Package },
-  SHIPPED: { label: 'Đã gửi ship', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
+  SHIPPING: { label: 'Đã gửi ship', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
   COMPLETED: { label: 'Hoàn thành', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   CANCELLED: { label: 'Đã hủy', color: 'bg-red-100 text-red-800', icon: XCircle },
 };
@@ -30,7 +30,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'Tất cả' },
   { value: 'PENDING', label: 'Chờ xử lý' },
   { value: 'PROCESSING', label: 'Đang xử lý' },
-  { value: 'SHIPPED', label: 'Đã gửi ship' },
+  { value: 'SHIPPING', label: 'Đã gửi ship' },
   { value: 'COMPLETED', label: 'Hoàn thành' },
   { value: 'CANCELLED', label: 'Đã hủy' },
 ];
@@ -62,6 +62,7 @@ export function SalesOrders() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [qrOrder, setQrOrder] = useState<SalesOrder | null>(null);
+  const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
 
   const pageSize = 10;
   const listIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -132,6 +133,19 @@ export function SalesOrders() {
   const openUpdateModal = (order: SalesOrder) => {
     setSelectedOrder(order);
     setIsUpdateModalOpen(true);
+  };
+
+  const handleCompleteOrder = async (order: SalesOrder) => {
+    if (!window.confirm(`Xác nhận hoàn thành đơn hàng ${order.orderCode ?? order.id.slice(0, 8).toUpperCase()}?`)) return;
+    setCompletingOrderId(order.id);
+    try {
+      await orderService.complete(order.id);
+      fetchOrders(currentPage, statusFilter);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể hoàn thành đơn hàng');
+    } finally {
+      setCompletingOrderId(null);
+    }
   };
 
   return (
@@ -248,6 +262,19 @@ export function SalesOrders() {
                                 className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
                               >
                                 <QrCode size={16} />
+                              </button>
+                            )}
+                            {can(role, "orders", "edit") && order.status === 'SHIPPING' && (
+                              <button
+                                onClick={() => handleCompleteOrder(order)}
+                                disabled={completingOrderId === order.id}
+                                title="Hoàn thành đơn hàng"
+                                className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {completingOrderId === order.id
+                                  ? <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                  : <CheckCircle size={16} />
+                                }
                               </button>
                             )}
                             <ResourceActionsMenu

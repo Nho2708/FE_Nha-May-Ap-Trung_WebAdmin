@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, AlertCircle, ChevronDown, ChevronRight, CheckCircle, XCircle, Ban } from 'lucide-react';
 import { hatchingSeasonService } from '@/services/hatchingSeasons';
+import { hatchingSeasonTemplateService } from '@/services/hatchingSeasonTemplates';
 import { configService, type Config } from '@/services/configs';
-import type { HatchingSeason, HatchingSeasonDetail, HatchingBatchDetail } from '@/types/hatching';
+import { can } from '@/config/permissions';
+import { useSession } from '@/hooks/use-session';
+import { incubatorService } from '@/services/incubators';
+import type { Incubator } from '@/types/incubator';
+import type { HatchingSeason, HatchingSeasonDetail, HatchingSeasonTemplateDetail, TemplateBatchDetail } from '@/types/hatching';
 
 interface SeasonDetailModalProps {
   isOpen: boolean;
@@ -25,26 +30,52 @@ const STATUS_COLOR: Record<string, string> = {
   CANCELLED: 'bg-slate-100 text-slate-600',
 };
 
-export function SeasonDetailModal({ isOpen, onClose, season }: SeasonDetailModalProps) {
+export function SeasonDetailModal({ isOpen, onClose, onUpdated, season }: SeasonDetailModalProps) {
+  const session = useSession();
+  const role = session?.role;
+  const canEdit = can(role, 'seasons', 'edit');
   const [detail, setDetail] = useState<HatchingSeasonDetail | null>(null);
+  const [templateDetail, setTemplateDetail] = useState<HatchingSeasonTemplateDetail | null>(null);
+  const [incubator, setIncubator] = useState<Incubator | null>(null);
   const [availableConfigs, setAvailableConfigs] = useState<Config[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!isOpen || !season) return;
-    setExpandedBatches(new Set());
-    setError(null);
+  const [statusLoading, setStatusLoading] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+
+  const loadDetail = () => {
+    if (!season) return;
     setLoading(true);
+    setError(null);
     Promise.all([
       hatchingSeasonService.getById(season.id),
       configService.list({ pageSize: 100 }),
     ]).then(([d, cfgResult]) => {
       setDetail(d);
       setAvailableConfigs(cfgResult.items);
+      if (d?.season?.templateId) {
+        hatchingSeasonTemplateService.getById(d.season.templateId)
+          .then(td => setTemplateDetail(td))
+          .catch(() => {});
+      } else {
+        setTemplateDetail(null);
+      }
+      if (d?.season?.incubatorId) {
+        incubatorService.getById(d.season.incubatorId)
+          .then(inc => setIncubator(inc))
+          .catch(() => {});
+      }
     }).catch(() => setError('Không thể tải chi tiết mùa ấp'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!isOpen || !season) return;
+    setExpandedBatches(new Set());
+    setPendingStatus(null);
+    loadDetail();
   }, [isOpen, season]);
 
   const toggleBatch = (id: string) => {
@@ -53,6 +84,22 @@ export function SeasonDetailModal({ isOpen, onClose, season }: SeasonDetailModal
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  const confirmUpdateStatus = async () => {
+    if (!season || !pendingStatus) return;
+    setStatusLoading(pendingStatus);
+    setError(null);
+    try {
+      await hatchingSeasonService.updateStatus(season.id, { status: pendingStatus });
+      setPendingStatus(null);
+      loadDetail();
+      onUpdated();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể cập nhật trạng thái');
+    } finally {
+      setStatusLoading(null);
+    }
   };
 
   if (!isOpen || !season) return null;
@@ -71,8 +118,11 @@ export function SeasonDetailModal({ isOpen, onClose, season }: SeasonDetailModal
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">Chi Tiết Mùa Ấp</h2>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="text-green-100 text-sm font-mono">{season.seasonCode}</span>
+                {incubator?.serialNumber && (
+                  <span className="text-green-200 text-xs font-mono">· {incubator.serialNumber}</span>
+                )}
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[s.status] ?? 'bg-slate-100 text-slate-600'}`}>
                   {STATUS_LABEL[s.status] ?? s.status}
                 </span>
@@ -146,35 +196,38 @@ export function SeasonDetailModal({ isOpen, onClose, season }: SeasonDetailModal
             {/* Giai đoạn */}
             <div className="border border-slate-200 rounded-lg overflow-hidden">
               <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
-                <h3 className="text-sm font-semibold text-slate-800">Giai Đoạn Ấp ({detail?.batches.length ?? 0})</h3>
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Giai Đoạn Ấp ({templateDetail?.batches.length ?? 0})
+                </h3>
               </div>
 
-              {detail?.batches.length === 0 && (
-                <p className="text-xs text-slate-500 text-center py-5">Chưa có giai đoạn nào</p>
+              {!templateDetail && (
+                <p className="text-xs text-slate-500 text-center py-5">Mùa ấp này không có template</p>
+              )}
+
+              {templateDetail && templateDetail.batches.length === 0 && (
+                <p className="text-xs text-slate-500 text-center py-5">Template chưa có giai đoạn nào</p>
               )}
 
               <div className="divide-y divide-slate-100">
-                {detail?.batches.map((bd: HatchingBatchDetail) => {
+                {templateDetail?.batches.map((bd: TemplateBatchDetail) => {
+                  if (!bd.batch) return null;
                   const expanded = expandedBatches.has(bd.batch.id);
                   return (
                     <div key={bd.batch.id}>
-                      <button type="button" onClick={() => toggleBatch(bd.batch.id)}
+                      <button type="button" onClick={() => toggleBatch(bd.batch!.id)}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left">
                         {expanded ? <ChevronDown size={14} className="text-slate-400 shrink-0" /> : <ChevronRight size={14} className="text-slate-400 shrink-0" />}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-800">
-                            #{bd.batch.batchIndex}{bd.batch.name ? ` — ${bd.batch.name}` : ''}
+                            Giai đoạn {bd.batch.batchIndex}{bd.batch.name ? ` — ${bd.batch.name}` : ''}
                           </p>
                           <p className="text-xs text-slate-500">
-                            Ngày {bd.batch.dayStart} → {bd.batch.dayEnd}
-                            {bd.batch.actualStartAt && ` · Bắt đầu: ${new Date(bd.batch.actualStartAt).toLocaleDateString('vi-VN')}`}
-                            {bd.batch.actualEndAt && ` · Kết thúc: ${new Date(bd.batch.actualEndAt).toLocaleDateString('vi-VN')}`}
-                            {` · ${bd.configs.length} thông số`}
+                            {bd.batch.numberOfDays} ngày
+                            {bd.configs.length > 0 && ` · ${bd.configs.length} thông số`}
+                            {bd.batch.notes && ` · ${bd.batch.notes}`}
                           </p>
                         </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
-                          bd.batch.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                        }`}>{bd.batch.status}</span>
                       </button>
 
                       {expanded && bd.configs.length > 0 && (
@@ -205,6 +258,67 @@ export function SeasonDetailModal({ isOpen, onClose, season }: SeasonDetailModal
                   );
                 })}
               </div>
+            </div>
+
+            {/* Inline confirm đổi trạng thái */}
+            {pendingStatus && (
+              <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                <p className="text-sm text-amber-800 flex-1">
+                  Xác nhận chuyển sang <span className="font-semibold">"{STATUS_LABEL[pendingStatus]}"</span>?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPendingStatus(null)}
+                  className="px-3 py-1.5 text-xs border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmUpdateStatus}
+                  disabled={!!statusLoading}
+                  className="px-3 py-1.5 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-medium disabled:opacity-50"
+                >
+                  {statusLoading ? 'Đang xử lý...' : 'Xác nhận'}
+                </button>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1 border-t border-slate-200">
+              <button type="button" onClick={onClose}
+                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 text-sm rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                Đóng
+              </button>
+              {canEdit && s.status === 'ACTIVE' && !pendingStatus && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setPendingStatus('COMPLETED')}
+                    className="flex-1 px-4 py-2.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-1.5"
+                  >
+                    <CheckCircle size={15} />
+                    Hoàn thành
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingStatus('FAILED')}
+                    className="flex-1 px-4 py-2.5 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center justify-center gap-1.5"
+                  >
+                    <XCircle size={15} />
+                    Thất bại
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingStatus('CANCELLED')}
+                    className="flex-1 px-4 py-2.5 bg-slate-500 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors font-medium flex items-center justify-center gap-1.5"
+                  >
+                    <Ban size={15} />
+                    Hủy
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

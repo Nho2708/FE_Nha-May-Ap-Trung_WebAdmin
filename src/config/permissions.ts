@@ -7,7 +7,8 @@ export type ResourceKey =
   | "orders"
   | "templates"
   | "maintenance"
-  | "warranties";
+  | "warranties"
+  | "seasons";
 
 export type PermissionAction = "create" | "edit" | "delete";
 
@@ -38,6 +39,10 @@ const permissions: Record<ResourceKey, Partial<Record<PermissionAction, UserRole
   },
   warranties: {
     create: ["ADMIN", "SALES_STAFF"],
+  },
+  seasons: {
+    create: ["ADMIN", "TECHNICIAN"],
+    edit: ["ADMIN", "TECHNICIAN"],
   },
 };
 

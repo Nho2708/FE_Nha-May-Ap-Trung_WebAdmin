@@ -126,11 +126,19 @@ export const authStorage = {
 
 export const authService = {
   async login(username: string, password: string) {
-    if (username === "admin" && password === "admin") {
-      return postLogin("/auth/admin/login", username, password);
+    let token: string;
+    try {
+      token = await postLogin("/auth/admin/login", username, password);
+    } catch {
+      token = await postLogin("/auth/login", username, password);
     }
 
-    return postLogin("/auth/login", username, password);
+    const role = getRoleFromToken(token ?? "");
+    if (role === "CUSTOMER") {
+      throw new Error("Tài khoản không có quyền truy cập hệ thống quản trị.");
+    }
+
+    return token;
   },
   logout() {
     authStorage.clearAccessToken();
