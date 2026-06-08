@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Package, CheckCircle, XCircle, Clock, RefreshCw, AlertCircle, QrCode, Truck } from 'lucide-react';
+import { Package, CheckCircle, XCircle, Clock, RefreshCw, AlertCircle, QrCode, Truck, Send } from 'lucide-react';
 import { CreateOrderModal } from './create-order-modal';
 import { UpdateOrderModal } from './update-order-modal';
 import { PaymentQRModal } from './payment-qr-modal';
@@ -13,7 +13,7 @@ import type { SalesOrder, OrderStatus } from '@/types/order';
 const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: React.ElementType }> = {
   PENDING: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   PROCESSING: { label: 'Đang xử lý', color: 'bg-blue-100 text-blue-800', icon: Package },
-  SHIPPED: { label: 'Đã gửi ship', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
+  SHIPPING: { label: 'Đang giao hàng', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
   COMPLETED: { label: 'Hoàn thành', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   CANCELLED: { label: 'Đã hủy', color: 'bg-red-100 text-red-800', icon: XCircle },
 };
@@ -30,7 +30,7 @@ const STATUS_FILTER_OPTIONS = [
   { value: '', label: 'Tất cả' },
   { value: 'PENDING', label: 'Chờ xử lý' },
   { value: 'PROCESSING', label: 'Đang xử lý' },
-  { value: 'SHIPPED', label: 'Đã gửi ship' },
+  { value: 'SHIPPING', label: 'Đang giao hàng' },
   { value: 'COMPLETED', label: 'Hoàn thành' },
   { value: 'CANCELLED', label: 'Đã hủy' },
 ];
@@ -62,6 +62,7 @@ export function SalesOrders() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [qrOrder, setQrOrder] = useState<SalesOrder | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const pageSize = 10;
   const listIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -132,6 +133,17 @@ export function SalesOrders() {
   const openUpdateModal = (order: SalesOrder) => {
     setSelectedOrder(order);
     setIsUpdateModalOpen(true);
+  };
+
+  const handleResendVerification = async (order: SalesOrder) => {
+    setResendingId(order.id);
+    try {
+      await orderService.resendVerification(order.id);
+    } catch {
+      // silent — lỗi không làm gián đoạn UX
+    } finally {
+      setResendingId(null);
+    }
   };
 
   return (
@@ -241,6 +253,18 @@ export function SalesOrders() {
                         </td>
                         <td className="px-5 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-1">
+                            {can(role, 'orders', 'edit') && !order.customerId && order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                              <button
+                                onClick={() => handleResendVerification(order)}
+                                disabled={resendingId === order.id}
+                                title="Gửi lại mã xác nhận cho khách"
+                                className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {resendingId === order.id
+                                  ? <RefreshCw size={16} className="animate-spin" />
+                                  : <Send size={16} />}
+                              </button>
+                            )}
                             {order.qrCode && order.paymentStatus === 'PENDING' && (
                               <button
                                 onClick={() => setQrOrder(order)}
