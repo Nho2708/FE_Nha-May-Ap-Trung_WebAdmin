@@ -1,3 +1,14 @@
+export interface IncubatorModelConfig {
+  configId: string;
+  configCode: string | null;
+  configName: string | null;
+  configUnit: string | null;
+  quantity: number | null;
+  required: boolean | null;
+  absoluteMin: number | null;
+  absoluteMax: number | null;
+}
+
 export interface IncubatorModel {
   id: string;
   status: string;
@@ -8,4 +19,5 @@ export interface IncubatorModel {
   description: string | null;
   unitPrice: number;
   imageUrl: string | null;
+  configs?: IncubatorModelConfig[];
 }
