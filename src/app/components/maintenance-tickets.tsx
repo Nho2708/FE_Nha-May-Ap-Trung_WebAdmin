@@ -39,23 +39,73 @@ const STATUS_META: Record<
   string,
   { label: string; color: string; icon: React.ElementType }
 > = {
-  PENDING: { label: "Chờ xử lý", color: "bg-blue-100 text-blue-800", icon: Clock },
-  ASSIGNED: { label: "Đã phân công", color: "bg-amber-100 text-amber-800", icon: Wrench },
-  AWAITING_PAYMENT: { label: "Chờ thanh toán", color: "bg-purple-100 text-purple-800", icon: CreditCard },
-  IN_PROGRESS: { label: "Đang xử lý", color: "bg-yellow-100 text-yellow-800", icon: Wrench },
-  RESOLVED: { label: "Đã xử lý", color: "bg-green-100 text-green-800", icon: CheckCircle },
-  REJECTED: { label: "Từ chối", color: "bg-red-100 text-red-800", icon: AlertCircle },
-  CANCELLED: { label: "Đã hủy", color: "bg-slate-100 text-slate-700", icon: AlertCircle },
-  CLOSED: { label: "Đã đóng", color: "bg-emerald-100 text-emerald-800", icon: CheckCircle },
+  PENDING: {
+    label: "Chờ xử lý",
+    color: "bg-blue-100 text-blue-800",
+    icon: Clock,
+  },
+  ASSIGNED: {
+    label: "Đã phân công",
+    color: "bg-amber-100 text-amber-800",
+    icon: Wrench,
+  },
+  AWAITING_PAYMENT: {
+    label: "Chờ thanh toán",
+    color: "bg-purple-100 text-purple-800",
+    icon: CreditCard,
+  },
+  IN_PROGRESS: {
+    label: "Đang xử lý",
+    color: "bg-yellow-100 text-yellow-800",
+    icon: Wrench,
+  },
+  RESOLVED: {
+    label: "Đã xử lý",
+    color: "bg-green-100 text-green-800",
+    icon: CheckCircle,
+  },
+  REJECTED: {
+    label: "Từ chối",
+    color: "bg-red-100 text-red-800",
+    icon: AlertCircle,
+  },
+  CANCELLED: {
+    label: "Đã hủy",
+    color: "bg-slate-100 text-slate-700",
+    icon: AlertCircle,
+  },
+  CLOSED: {
+    label: "Đã đóng",
+    color: "bg-emerald-100 text-emerald-800",
+    icon: CheckCircle,
+  },
 };
 
-const CONDITION_CONFIG: Record<ConfigCondition, { label: string; color: string; discount: string }> = {
-  NORMAL: { label: "Bình thường", color: "text-green-700 bg-green-50", discount: "Không tính phí" },
-  USER_DAMAGE: { label: "Người dùng làm hỏng", color: "text-orange-700 bg-orange-50", discount: "Giảm 20%" },
-  MANUFACTURING_DEFECT: { label: "Lỗi nhà sản xuất", color: "text-red-700 bg-red-50", discount: "Giảm 80%" },
+const CONDITION_CONFIG: Record<
+  ConfigCondition,
+  { label: string; color: string; discount: string }
+> = {
+  NORMAL: {
+    label: "Bình thường",
+    color: "text-green-700 bg-green-50",
+    discount: "Không tính phí",
+  },
+  USER_DAMAGE: {
+    label: "Người dùng làm hỏng",
+    color: "text-orange-700 bg-orange-50",
+    discount: "Giảm 20%",
+  },
+  MANUFACTURING_DEFECT: {
+    label: "Lỗi nhà sản xuất",
+    color: "text-red-700 bg-red-50",
+    discount: "Giảm 80%",
+  },
 };
 
-const FILTER_OPTIONS: { value: MaintenanceTicketStatus | "all"; label: string }[] = [
+const FILTER_OPTIONS: {
+  value: MaintenanceTicketStatus | "all";
+  label: string;
+}[] = [
   { value: "all", label: "Tất cả" },
   { value: "PENDING", label: "Chờ xử lý" },
   { value: "ASSIGNED", label: "Đã phân công" },
@@ -83,19 +133,24 @@ const StatusBadge = ({ status }: { status: string }) => {
   const meta = getStatusMeta(status);
   const Icon = meta.icon;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${meta.color}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${meta.color}`}
+    >
       <Icon size={10} />
       {meta.label}
     </span>
   );
 };
 
-const formatCurrency = (value: number) =>
-  value.toLocaleString("vi-VN") + " ₫";
+const formatCurrency = (value: number) => value.toLocaleString("vi-VN") + " ₫";
 
-function calcFinalPrice(marketPrice: number, condition: ConfigCondition): number {
+function calcFinalPrice(
+  marketPrice: number,
+  condition: ConfigCondition,
+): number {
   if (condition === "USER_DAMAGE") return Math.round(marketPrice * 0.8);
-  if (condition === "MANUFACTURING_DEFECT") return Math.round(marketPrice * 0.2);
+  if (condition === "MANUFACTURING_DEFECT")
+    return Math.round(marketPrice * 0.2);
   return 0;
 }
 
@@ -129,7 +184,7 @@ function ConfigAssessmentForm({
       condition: "NORMAL" as ConfigCondition,
       marketPrice: "0",
       note: "",
-    }))
+    })),
   );
 
   const totalFinal = rows.reduce((sum, r) => {
@@ -139,7 +194,7 @@ function ConfigAssessmentForm({
 
   const update = (idx: number, field: keyof AssessmentRow, value: string) => {
     setRows((prev) =>
-      prev.map((r, i) => (i === idx ? { ...r, [field]: value } : r))
+      prev.map((r, i) => (i === idx ? { ...r, [field]: value } : r)),
     );
   };
 
@@ -161,21 +216,33 @@ function ConfigAssessmentForm({
           const final = calcFinalPrice(price, row.condition);
           const condCfg = CONDITION_CONFIG[row.condition];
           return (
-            <div key={row.configId} className="border border-slate-200 rounded-lg p-3 space-y-2">
+            <div
+              key={row.configId}
+              className="border border-slate-200 rounded-lg p-3 space-y-2"
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-800">{row.configName}</p>
-                  <p className="text-xs text-slate-400">{row.configCode}{row.configUnit ? ` · ${row.configUnit}` : ""}</p>
+                  <p className="text-xs font-semibold text-slate-800">
+                    {row.configName}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {row.configCode}
+                    {row.configUnit ? ` · ${row.configUnit}` : ""}
+                  </p>
                 </div>
                 {row.condition !== "NORMAL" && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${condCfg.color}`}>
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded font-medium ${condCfg.color}`}
+                  >
                     {condCfg.discount}
                   </span>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-slate-500 block mb-0.5">Tình trạng</label>
+                  <label className="text-xs text-slate-500 block mb-0.5">
+                    Tình trạng
+                  </label>
                   <select
                     value={row.condition}
                     onChange={(e) => update(idx, "condition", e.target.value)}
@@ -183,11 +250,15 @@ function ConfigAssessmentForm({
                   >
                     <option value="NORMAL">Bình thường</option>
                     <option value="USER_DAMAGE">Người dùng làm hỏng</option>
-                    <option value="MANUFACTURING_DEFECT">Lỗi nhà sản xuất</option>
+                    <option value="MANUFACTURING_DEFECT">
+                      Lỗi nhà sản xuất
+                    </option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 block mb-0.5">Giá thị trường (₫)</label>
+                  <label className="text-xs text-slate-500 block mb-0.5">
+                    Giá thị trường (₫)
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -201,7 +272,9 @@ function ConfigAssessmentForm({
               {row.condition !== "NORMAL" && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500">Khách trả:</span>
-                  <span className="font-semibold text-blue-700">{formatCurrency(final)}</span>
+                  <span className="font-semibold text-blue-700">
+                    {formatCurrency(final)}
+                  </span>
                 </div>
               )}
               <input
@@ -218,8 +291,12 @@ function ConfigAssessmentForm({
 
       <div className="border-t border-slate-200 pt-2">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-slate-700">Tổng cần thanh toán:</span>
-          <span className={`text-base font-bold ${totalFinal > 0 ? "text-blue-700" : "text-green-700"}`}>
+          <span className="text-sm font-medium text-slate-700">
+            Tổng cần thanh toán:
+          </span>
+          <span
+            className={`text-base font-bold ${totalFinal > 0 ? "text-blue-700" : "text-green-700"}`}
+          >
             {totalFinal > 0 ? formatCurrency(totalFinal) : "Miễn phí"}
           </span>
         </div>
@@ -228,7 +305,11 @@ function ConfigAssessmentForm({
           disabled={isSubmitting}
           className="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
         >
-          {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+          {isSubmitting ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <CheckCircle size={14} />
+          )}
           {isSubmitting ? "Đang xử lý..." : "Xác nhận đánh giá"}
         </button>
       </div>
@@ -245,12 +326,22 @@ export function MaintenanceTickets() {
   const [ticketTotalItems, setTicketTotalItems] = useState(0);
   const [ticketTotalPages, setTicketTotalPages] = useState(1);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<MaintenanceTicketDetail | null>(null);
+  const [selectedDetail, setSelectedDetail] =
+    useState<MaintenanceTicketDetail | null>(null);
   const [technicians, setTechnicians] = useState<User[]>([]);
-  const [incubatorSerialMap, setIncubatorSerialMap] = useState<Map<string, string>>(new Map());
-  const [filterStatus, setFilterStatus] = useState<MaintenanceTicketStatus | "all">("all");
+  const [incubatorSerialMap, setIncubatorSerialMap] = useState<
+    Map<string, string>
+  >(new Map());
+  const [filterStatus, setFilterStatus] = useState<
+    MaintenanceTicketStatus | "all"
+  >("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [stats, setStats] = useState<TicketStats>({ total: 0, pending: 0, processing: 0, done: 0 });
+  const [stats, setStats] = useState<TicketStats>({
+    total: 0,
+    pending: 0,
+    processing: 0,
+    done: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -270,17 +361,20 @@ export function MaintenanceTickets() {
   const [assessError, setAssessError] = useState<string | null>(null);
 
   // Payment QR
-  const [paymentInfo, setPaymentInfo] = useState<MaintenanceTicketPaymentResponse | null>(null);
+  const [paymentInfo, setPaymentInfo] =
+    useState<MaintenanceTicketPaymentResponse | null>(null);
   const [showQR, setShowQR] = useState(false);
 
   const ticketsPerPage = 10;
   const fetchedIncubatorIds = useRef<Set<string>>(new Set());
   const fetchedTechnicianIds = useRef<Set<string>>(new Set());
-  const [extraTechnicianMap, setExtraTechnicianMap] = useState<Map<string, string>>(new Map());
+  const [extraTechnicianMap, setExtraTechnicianMap] = useState<
+    Map<string, string>
+  >(new Map());
 
   const technicianMap = useMemo(
     () => new Map(technicians.map((u) => [u.id, u.fullName])),
-    [technicians]
+    [technicians],
   );
 
   const getTechnicianName = (id: string | null) => {
@@ -289,26 +383,45 @@ export function MaintenanceTickets() {
   };
 
   const loadStats = async () => {
-    const [all, pending, assigned, inProgress, awaitingPayment, resolved, closed] = await Promise.all([
+    const [
+      all,
+      pending,
+      assigned,
+      inProgress,
+      awaitingPayment,
+      resolved,
+      closed,
+    ] = await Promise.all([
       maintenanceService.list({ page: 1, pageSize: 1 }),
       maintenanceService.list({ status: "PENDING", page: 1, pageSize: 1 }),
       maintenanceService.list({ status: "ASSIGNED", page: 1, pageSize: 1 }),
       maintenanceService.list({ status: "IN_PROGRESS", page: 1, pageSize: 1 }),
-      maintenanceService.list({ status: "AWAITING_PAYMENT", page: 1, pageSize: 1 }),
+      maintenanceService.list({
+        status: "AWAITING_PAYMENT",
+        page: 1,
+        pageSize: 1,
+      }),
       maintenanceService.list({ status: "RESOLVED", page: 1, pageSize: 1 }),
       maintenanceService.list({ status: "CLOSED", page: 1, pageSize: 1 }),
     ]);
     setStats({
       total: all.totalItems,
       pending: pending.totalItems,
-      processing: assigned.totalItems + inProgress.totalItems + awaitingPayment.totalItems,
+      processing:
+        assigned.totalItems +
+        inProgress.totalItems +
+        awaitingPayment.totalItems,
       done: resolved.totalItems + closed.totalItems,
     });
   };
 
   const loadTechnicians = async () => {
     try {
-      const result = await userService.list({ role: "TECHNICIAN", page: 1, pageSize: 200 });
+      const result = await userService.list({
+        role: "TECHNICIAN",
+        page: 1,
+        pageSize: 200,
+      });
       setTechnicians(result.items);
     } catch {
       setTechnicians([]);
@@ -317,9 +430,13 @@ export function MaintenanceTickets() {
 
   const loadIncubatorSerials = async () => {
     try {
-      const result = await incubatorService.list({ pageSize: 200 });
+      const result = await incubatorService.list({ size: 200 });
       setIncubatorSerialMap(
-        new Map(result.items.filter((i) => i.serialNumber).map((i) => [i.id, i.serialNumber as string]))
+        new Map(
+          result.items
+            .filter((i) => i.serialNumber)
+            .map((i) => [i.id, i.serialNumber as string]),
+        ),
       );
     } catch {
       // keep empty map
@@ -330,17 +447,26 @@ export function MaintenanceTickets() {
     setLoading(true);
     setError(null);
     try {
-      const result = await maintenanceService.list({ status, page, pageSize: ticketsPerPage });
+      const result = await maintenanceService.list({
+        status,
+        page,
+        pageSize: ticketsPerPage,
+      });
       setTickets(result.items);
       setTicketTotalItems(result.totalItems);
       setTicketTotalPages(Math.max(1, result.totalPages));
       if (result.items.length === 0) {
         setSelectedTicketId(null);
-      } else if (!selectedTicketId || !result.items.some((t) => t.id === selectedTicketId)) {
+      } else if (
+        !selectedTicketId ||
+        !result.items.some((t) => t.id === selectedTicketId)
+      ) {
         setSelectedTicketId(result.items[0].id);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể tải danh sách ticket.");
+      setError(
+        err instanceof Error ? err.message : "Không thể tải danh sách ticket.",
+      );
     } finally {
       setLoading(false);
     }
@@ -351,12 +477,21 @@ export function MaintenanceTickets() {
     setActionLoading(true);
     setAssignError(null);
     try {
-      await maintenanceService.assignTechnician(selectedTicketId, assignTechnicianId);
+      await maintenanceService.assignTechnician(
+        selectedTicketId,
+        assignTechnicianId,
+      );
       setShowAssignForm(false);
       setAssignTechnicianId("");
-      await Promise.all([loadDetail(selectedTicketId), loadTickets(currentPage, filterStatus), loadStats()]);
+      await Promise.all([
+        loadDetail(selectedTicketId),
+        loadTickets(currentPage, filterStatus),
+        loadStats(),
+      ]);
     } catch (err) {
-      setAssignError(err instanceof Error ? err.message : "Không thể gán kỹ thuật viên.");
+      setAssignError(
+        err instanceof Error ? err.message : "Không thể gán kỹ thuật viên.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -375,23 +510,43 @@ export function MaintenanceTickets() {
         const { incubatorId, technicianId } = detail.ticket;
         if (incubatorId && !fetchedIncubatorIds.current.has(incubatorId)) {
           fetchedIncubatorIds.current.add(incubatorId);
-          incubatorService.getById(incubatorId).then((inc) => {
-            if (inc?.serialNumber) {
-              setIncubatorSerialMap((prev) => new Map([...prev, [incubatorId, inc.serialNumber as string]]));
-            }
-          }).catch(() => {});
+          incubatorService
+            .getById(incubatorId)
+            .then((inc) => {
+              if (inc?.serialNumber) {
+                setIncubatorSerialMap(
+                  (prev) =>
+                    new Map([
+                      ...prev,
+                      [incubatorId, inc.serialNumber as string],
+                    ]),
+                );
+              }
+            })
+            .catch(() => {});
         }
-        if (technicianId && !fetchedTechnicianIds.current.has(technicianId) && !technicianMap.has(technicianId)) {
+        if (
+          technicianId &&
+          !fetchedTechnicianIds.current.has(technicianId) &&
+          !technicianMap.has(technicianId)
+        ) {
           fetchedTechnicianIds.current.add(technicianId);
-          userService.getById(technicianId).then((user) => {
-            if (user?.fullName) {
-              setExtraTechnicianMap((prev) => new Map([...prev, [technicianId, user.fullName]]));
-            }
-          }).catch(() => {});
+          userService
+            .getById(technicianId)
+            .then((user) => {
+              if (user?.fullName) {
+                setExtraTechnicianMap(
+                  (prev) => new Map([...prev, [technicianId, user.fullName]]),
+                );
+              }
+            })
+            .catch(() => {});
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể tải chi tiết ticket.");
+      setError(
+        err instanceof Error ? err.message : "Không thể tải chi tiết ticket.",
+      );
     } finally {
       setDetailLoading(false);
     }
@@ -412,11 +567,16 @@ export function MaintenanceTickets() {
   useEffect(() => {
     void Promise.all([loadStats(), loadTechnicians(), loadIncubatorSerials()]);
     if (session?.userId) {
-      userService.getById(session.userId).then((user) => {
-        if (user?.fullName) {
-          setExtraTechnicianMap((prev) => new Map([...prev, [session.userId!, user.fullName]]));
-        }
-      }).catch(() => {});
+      userService
+        .getById(session.userId)
+        .then((user) => {
+          if (user?.fullName) {
+            setExtraTechnicianMap(
+              (prev) => new Map([...prev, [session.userId!, user.fullName]]),
+            );
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -438,9 +598,14 @@ export function MaintenanceTickets() {
     const missing = ids.filter((id) => !fetchedIncubatorIds.current.has(id));
     missing.forEach((id) => fetchedIncubatorIds.current.add(id));
     if (missing.length === 0) return;
-    Promise.all(missing.map((id) => incubatorService.getById(id).catch(() => null))).then((results) => {
+    Promise.all(
+      missing.map((id) => incubatorService.getById(id).catch(() => null)),
+    ).then((results) => {
       const newEntries = results
-        .filter((inc): inc is NonNullable<typeof inc> => inc !== null && inc.serialNumber != null)
+        .filter(
+          (inc): inc is NonNullable<typeof inc> =>
+            inc !== null && inc.serialNumber != null,
+        )
         .map((inc): [string, string] => [inc.id, inc.serialNumber as string]);
       if (newEntries.length > 0) {
         setIncubatorSerialMap((prev) => new Map([...prev, ...newEntries]));
@@ -453,9 +618,12 @@ export function MaintenanceTickets() {
     if (!showAssessForm || !selectedDetail?.ticket) return;
     const incubatorId = selectedDetail.ticket.incubatorId;
     // find modelId via incubator — need to fetch incubator
-    incubatorService.getById(incubatorId).then((inc) => {
-      if (inc?.modelId) void loadModelConfigs(inc.modelId);
-    }).catch(() => setModelConfigs([]));
+    incubatorService
+      .getById(incubatorId)
+      .then((inc) => {
+        if (inc?.modelId) void loadModelConfigs(inc.modelId);
+      })
+      .catch(() => setModelConfigs([]));
   }, [showAssessForm, selectedDetail?.ticket?.incubatorId]);
 
   const handleStatusUpdate = async (status: MaintenanceTicketStatus) => {
@@ -468,11 +636,21 @@ export function MaintenanceTickets() {
     setActionLoading(true);
     setError(null);
     try {
-      await maintenanceService.updateStatus(selectedTicketId, status, needsSummary ? progressNote : undefined);
+      await maintenanceService.updateStatus(
+        selectedTicketId,
+        status,
+        needsSummary ? progressNote : undefined,
+      );
       if (needsSummary) setProgressNote("");
-      await Promise.all([loadDetail(selectedTicketId), loadTickets(currentPage, filterStatus), loadStats()]);
+      await Promise.all([
+        loadDetail(selectedTicketId),
+        loadTickets(currentPage, filterStatus),
+        loadStats(),
+      ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể cập nhật trạng thái.");
+      setError(
+        err instanceof Error ? err.message : "Không thể cập nhật trạng thái.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -498,21 +676,31 @@ export function MaintenanceTickets() {
     setActionLoading(true);
     setAssessError(null);
     try {
-      const result = await maintenanceService.assessConfigs(selectedTicketId, { items });
+      const result = await maintenanceService.assessConfigs(selectedTicketId, {
+        items,
+      });
       setShowAssessForm(false);
       if (result.requiresPayment && result.qrCode) {
         setPaymentInfo(result);
         setShowQR(true);
       }
-      await Promise.all([loadDetail(selectedTicketId), loadTickets(currentPage, filterStatus), loadStats()]);
+      await Promise.all([
+        loadDetail(selectedTicketId),
+        loadTickets(currentPage, filterStatus),
+        loadStats(),
+      ]);
     } catch (err) {
-      setAssessError(err instanceof Error ? err.message : "Không thể lưu đánh giá.");
+      setAssessError(
+        err instanceof Error ? err.message : "Không thể lưu đánh giá.",
+      );
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleCreateTicket = async (payload: CreateMaintenanceTicketPayload) => {
+  const handleCreateTicket = async (
+    payload: CreateMaintenanceTicketPayload,
+  ) => {
     setActionLoading(true);
     setError(null);
     try {
@@ -521,7 +709,11 @@ export function MaintenanceTickets() {
       setCurrentPage(1);
       await Promise.all([loadStats(), loadTickets(1, filterStatus)]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể tạo ticket hỗ trợ kỹ thuật.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Không thể tạo ticket hỗ trợ kỹ thuật.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -547,15 +739,27 @@ export function MaintenanceTickets() {
           )}
           <select
             value={filterStatus}
-            onChange={(e) => { setCurrentPage(1); setFilterStatus(e.target.value as MaintenanceTicketStatus | "all"); }}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setFilterStatus(
+                e.target.value as MaintenanceTicketStatus | "all",
+              );
+            }}
             className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {FILTER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
             ))}
           </select>
           <button
-            onClick={() => void Promise.all([loadStats(), loadTickets(currentPage, filterStatus)])}
+            onClick={() =>
+              void Promise.all([
+                loadStats(),
+                loadTickets(currentPage, filterStatus),
+              ])
+            }
             disabled={loading}
             className="px-3 py-1.5 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-60"
           >
@@ -577,7 +781,9 @@ export function MaintenanceTickets() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-700 mb-0.5">Chờ Xử Lý</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {stats.pending}
+              </p>
             </div>
             <Clock size={24} className="text-blue-500" />
           </div>
@@ -586,7 +792,9 @@ export function MaintenanceTickets() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-slate-700 mb-0.5">Đang Xử Lý</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.processing}</p>
+              <p className="text-2xl font-bold text-yellow-600">
+                {stats.processing}
+              </p>
             </div>
             <Wrench size={24} className="text-yellow-500" />
           </div>
@@ -618,28 +826,39 @@ export function MaintenanceTickets() {
                   key={ticket.id}
                   onClick={() => setSelectedTicketId(ticket.id)}
                   className={`bg-white rounded-lg shadow-sm border-2 p-3.5 cursor-pointer transition-all hover:shadow ${
-                    selectedTicketId === ticket.id ? "border-blue-500" : "border-slate-200"
+                    selectedTicketId === ticket.id
+                      ? "border-blue-500"
+                      : "border-slate-200"
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <StatusBadge status={ticket.status} />
-                        {ticket.status === "AWAITING_PAYMENT" && ticket.totalAmount > 0 && (
-                          <span className="text-xs font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
-                            {formatCurrency(ticket.totalAmount)}
-                          </span>
-                        )}
+                        {ticket.status === "AWAITING_PAYMENT" &&
+                          ticket.totalAmount > 0 && (
+                            <span className="text-xs font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
+                              {formatCurrency(ticket.totalAmount)}
+                            </span>
+                          )}
                       </div>
                       <p className="text-xs text-slate-600 mb-1.5">
-                        Máy ấp: <span className="font-medium text-slate-800">{incubatorSerialMap.get(ticket.incubatorId) ?? "—"}</span>
+                        Máy ấp:{" "}
+                        <span className="font-medium text-slate-800">
+                          {incubatorSerialMap.get(ticket.incubatorId) ?? "—"}
+                        </span>
                       </p>
-                      <p className="text-xs text-slate-700">{ticket.issueDescription}</p>
+                      <p className="text-xs text-slate-700">
+                        {ticket.issueDescription}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-xs border-t border-slate-200 pt-2 mt-2">
                     <div className="text-slate-600">
-                      Tạo lúc <span className="font-medium text-slate-800">{formatDateTime(ticket.createdAt)}</span>
+                      Tạo lúc{" "}
+                      <span className="font-medium text-slate-800">
+                        {formatDateTime(ticket.createdAt)}
+                      </span>
                     </div>
                     {role !== "TECHNICIAN" && (
                       <span className="text-blue-600 font-medium text-xs">
@@ -681,7 +900,9 @@ export function MaintenanceTickets() {
           ) : selectedTicket ? (
             <div className="space-y-4">
               <div className="border-b border-slate-200 pb-3">
-                <h3 className="text-base font-semibold text-slate-800">Chi Tiết Ticket</h3>
+                <h3 className="text-base font-semibold text-slate-800">
+                  Chi Tiết Ticket
+                </h3>
               </div>
 
               <div className="space-y-3">
@@ -698,54 +919,85 @@ export function MaintenanceTickets() {
                 )}
 
                 {/* Assign technician — for PENDING or ASSIGNED tickets */}
-                {["PENDING", "ASSIGNED"].includes(selectedTicket.status) && can(role, "maintenance", "edit") && (
-                  <div>
-                    {!showAssignForm ? (
-                      <button
-                        onClick={() => { setShowAssignForm(true); setAssignTechnicianId(selectedTicket.technicianId ?? ""); }}
-                        className="text-xs text-blue-600 hover:text-blue-700 underline"
-                      >
-                        {selectedTicket.technicianId ? "Thay đổi kỹ thuật viên" : "Gán kỹ thuật viên"}
-                      </button>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <select
-                          value={assignTechnicianId}
-                          onChange={(e) => setAssignTechnicianId(e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                {["PENDING", "ASSIGNED"].includes(selectedTicket.status) &&
+                  can(role, "maintenance", "edit") && (
+                    <div>
+                      {!showAssignForm ? (
+                        <button
+                          onClick={() => {
+                            setShowAssignForm(true);
+                            setAssignTechnicianId(
+                              selectedTicket.technicianId ?? "",
+                            );
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-700 underline"
                         >
-                          <option value="">-- Chọn kỹ thuật viên --</option>
-                          {technicians.map((t) => (
-                            <option key={t.id} value={t.id}>{t.fullName}</option>
-                          ))}
-                        </select>
-                        {assignError && <p className="text-xs text-red-600">{assignError}</p>}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => { setShowAssignForm(false); setAssignError(null); }}
-                            className="flex-1 px-2 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50"
-                          >Hủy</button>
-                          <button
-                            onClick={() => void handleAssignTechnician()}
-                            disabled={actionLoading || !assignTechnicianId}
-                            className="flex-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
-                          >Xác nhận</button>
+                          {selectedTicket.technicianId
+                            ? "Thay đổi kỹ thuật viên"
+                            : "Gán kỹ thuật viên"}
+                        </button>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <select
+                            value={assignTechnicianId}
+                            onChange={(e) =>
+                              setAssignTechnicianId(e.target.value)
+                            }
+                            className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="">-- Chọn kỹ thuật viên --</option>
+                            {technicians.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.fullName}
+                              </option>
+                            ))}
+                          </select>
+                          {assignError && (
+                            <p className="text-xs text-red-600">
+                              {assignError}
+                            </p>
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setShowAssignForm(false);
+                                setAssignError(null);
+                              }}
+                              className="flex-1 px-2 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              onClick={() => void handleAssignTechnician()}
+                              disabled={actionLoading || !assignTechnicianId}
+                              className="flex-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
+                            >
+                              Xác nhận
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
 
-                <DetailRow label="Ngày tạo">{formatDateTime(selectedTicket.createdAt)}</DetailRow>
+                <DetailRow label="Ngày tạo">
+                  {formatDateTime(selectedTicket.createdAt)}
+                </DetailRow>
                 {selectedTicket.startedAt && (
-                  <DetailRow label="Ngày bắt đầu">{formatDateTime(selectedTicket.startedAt)}</DetailRow>
+                  <DetailRow label="Ngày bắt đầu">
+                    {formatDateTime(selectedTicket.startedAt)}
+                  </DetailRow>
                 )}
                 {selectedTicket.resolvedAt && (
-                  <DetailRow label="Ngày hoàn tất">{formatDateTime(selectedTicket.resolvedAt)}</DetailRow>
+                  <DetailRow label="Ngày hoàn tất">
+                    {formatDateTime(selectedTicket.resolvedAt)}
+                  </DetailRow>
                 )}
 
                 <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1.5">Mô tả lỗi</label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1.5">
+                    Mô tả lỗi
+                  </label>
                   <p className="text-xs text-slate-700 bg-slate-50 px-2.5 py-1.5 rounded">
                     {selectedTicket.issueDescription}
                   </p>
@@ -753,7 +1005,9 @@ export function MaintenanceTickets() {
 
                 {selectedTicket.resolutionSummary && (
                   <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1.5">Kết quả xử lý</label>
+                    <label className="text-xs font-medium text-slate-700 block mb-1.5">
+                      Kết quả xử lý
+                    </label>
                     <p className="text-xs text-green-700 bg-green-50 px-2.5 py-1.5 rounded">
                       {selectedTicket.resolutionSummary}
                     </p>
@@ -763,46 +1017,58 @@ export function MaintenanceTickets() {
                 {/* Payment info */}
                 {selectedTicket.totalAmount > 0 && (
                   <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1.5">Thanh toán</label>
+                    <label className="text-xs font-medium text-slate-700 block mb-1.5">
+                      Thanh toán
+                    </label>
                     <div className="bg-slate-50 rounded px-2.5 py-2 space-y-1 text-xs">
                       <div className="flex justify-between">
                         <span className="text-slate-500">Tổng tiền:</span>
-                        <span className="font-semibold text-blue-700">{formatCurrency(selectedTicket.totalAmount)}</span>
+                        <span className="font-semibold text-blue-700">
+                          {formatCurrency(selectedTicket.totalAmount)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Trạng thái:</span>
-                        <span className={`font-medium ${selectedTicket.paymentStatus === "PAID" ? "text-green-700" : "text-orange-600"}`}>
-                          {selectedTicket.paymentStatus === "PAID" ? "Đã thanh toán" : "Chưa thanh toán"}
+                        <span
+                          className={`font-medium ${selectedTicket.paymentStatus === "PAID" ? "text-green-700" : "text-orange-600"}`}
+                        >
+                          {selectedTicket.paymentStatus === "PAID"
+                            ? "Đã thanh toán"
+                            : "Chưa thanh toán"}
                         </span>
                       </div>
                       {selectedTicket.paidAt && (
                         <div className="flex justify-between">
-                          <span className="text-slate-500">Thanh toán lúc:</span>
+                          <span className="text-slate-500">
+                            Thanh toán lúc:
+                          </span>
                           <span>{formatDateTime(selectedTicket.paidAt)}</span>
                         </div>
                       )}
                     </div>
-                    {selectedTicket.status === "AWAITING_PAYMENT" && selectedTicket.qrCode && (
-                      <button
-                        onClick={() => {
-                          setPaymentInfo({
-                            ticketId: selectedTicket.id,
-                            totalAmount: selectedTicket.totalAmount,
-                            requiresPayment: true,
-                            paymentStatus: selectedTicket.paymentStatus,
-                            paymentOrderCode: selectedTicket.paymentOrderCode,
-                            paymentLinkId: selectedTicket.paymentLinkId,
-                            qrCode: selectedTicket.qrCode,
-                            paymentLinkExpiredAt: selectedTicket.paymentLinkExpiredAt,
-                          });
-                          setShowQR(true);
-                        }}
-                        className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-purple-300 text-purple-700 text-xs rounded-lg hover:bg-purple-50 transition-colors"
-                      >
-                        <QrCode size={13} />
-                        Hiển thị QR thanh toán
-                      </button>
-                    )}
+                    {selectedTicket.status === "AWAITING_PAYMENT" &&
+                      selectedTicket.qrCode && (
+                        <button
+                          onClick={() => {
+                            setPaymentInfo({
+                              ticketId: selectedTicket.id,
+                              totalAmount: selectedTicket.totalAmount,
+                              requiresPayment: true,
+                              paymentStatus: selectedTicket.paymentStatus,
+                              paymentOrderCode: selectedTicket.paymentOrderCode,
+                              paymentLinkId: selectedTicket.paymentLinkId,
+                              qrCode: selectedTicket.qrCode,
+                              paymentLinkExpiredAt:
+                                selectedTicket.paymentLinkExpiredAt,
+                            });
+                            setShowQR(true);
+                          }}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-purple-300 text-purple-700 text-xs rounded-lg hover:bg-purple-50 transition-colors"
+                        >
+                          <QrCode size={13} />
+                          Hiển thị QR thanh toán
+                        </button>
+                      )}
                   </div>
                 )}
 
@@ -814,22 +1080,38 @@ export function MaintenanceTickets() {
                     </label>
                     <div className="space-y-1.5 max-h-40 overflow-y-auto">
                       {selectedDetail!.configItems.map((ci) => {
-                        const condCfg = CONDITION_CONFIG[ci.condition as ConfigCondition];
+                        const condCfg =
+                          CONDITION_CONFIG[ci.condition as ConfigCondition];
                         return (
-                          <div key={ci.id} className="bg-slate-50 rounded px-2.5 py-2 text-xs space-y-0.5">
+                          <div
+                            key={ci.id}
+                            className="bg-slate-50 rounded px-2.5 py-2 text-xs space-y-0.5"
+                          >
                             <div className="flex items-center justify-between">
-                              <span className="font-medium text-slate-800">{ci.configName || ci.configCode || "—"}</span>
-                              <span className="font-semibold text-blue-700">{formatCurrency(ci.finalPrice)}</span>
+                              <span className="font-medium text-slate-800">
+                                {ci.configName || ci.configCode || "—"}
+                              </span>
+                              <span className="font-semibold text-blue-700">
+                                {formatCurrency(ci.finalPrice)}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2">
                               {condCfg && (
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${condCfg.color}`}>{condCfg.label}</span>
+                                <span
+                                  className={`text-xs px-1.5 py-0.5 rounded ${condCfg.color}`}
+                                >
+                                  {condCfg.label}
+                                </span>
                               )}
                               {ci.condition !== "NORMAL" && (
-                                <span className="text-slate-400">Giá gốc: {formatCurrency(ci.marketPrice)}</span>
+                                <span className="text-slate-400">
+                                  Giá gốc: {formatCurrency(ci.marketPrice)}
+                                </span>
                               )}
                             </div>
-                            {ci.note && <p className="text-slate-500 italic">{ci.note}</p>}
+                            {ci.note && (
+                              <p className="text-slate-500 italic">{ci.note}</p>
+                            )}
                           </div>
                         );
                       })}
@@ -840,12 +1122,24 @@ export function MaintenanceTickets() {
                 {/* Warranty */}
                 {selectedDetail?.warranty && (
                   <div>
-                    <label className="text-xs font-medium text-slate-700 block mb-1.5">Bảo hành</label>
+                    <label className="text-xs font-medium text-slate-700 block mb-1.5">
+                      Bảo hành
+                    </label>
                     <div className="text-xs text-slate-700 bg-slate-50 px-2.5 py-2 rounded space-y-1">
-                      <p>Mã BH: <span className="font-medium">{selectedDetail.warranty.warrantyCode || "—"}</span></p>
-                      <p>Đến: {selectedDetail.warranty.endDate
-                        ? new Date(selectedDetail.warranty.endDate).toLocaleDateString("vi-VN")
-                        : "--"}</p>
+                      <p>
+                        Mã BH:{" "}
+                        <span className="font-medium">
+                          {selectedDetail.warranty.warrantyCode || "—"}
+                        </span>
+                      </p>
+                      <p>
+                        Đến:{" "}
+                        {selectedDetail.warranty.endDate
+                          ? new Date(
+                              selectedDetail.warranty.endDate,
+                            ).toLocaleDateString("vi-VN")
+                          : "--"}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -860,53 +1154,74 @@ export function MaintenanceTickets() {
                       <LogItem key={log.id} log={log} />
                     ))}
                     {(selectedDetail?.logs.length ?? 0) === 0 && (
-                      <p className="text-xs text-slate-500">Chưa có cập nhật.</p>
+                      <p className="text-xs text-slate-500">
+                        Chưa có cập nhật.
+                      </p>
                     )}
                   </div>
                 </div>
 
                 {/* Config assessment form — show for ASSIGNED tickets */}
-                {selectedTicket.status === "ASSIGNED" && can(role, "maintenance", "edit") && (
-                  <div className="border-t border-slate-200 pt-3">
-                    {!showAssessForm ? (
-                      <button
-                        onClick={() => setShowAssessForm(true)}
-                        className="w-full px-3 py-2 text-sm border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <ClipboardList size={15} />
-                        Đánh giá cấu hình & tính tiền
-                      </button>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-semibold text-slate-700">Đánh giá từng cấu hình</p>
-                          <button onClick={() => setShowAssessForm(false)} className="text-xs text-slate-400 hover:text-slate-600">Hủy</button>
-                        </div>
-                        {assessError && (
-                          <p className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">{assessError}</p>
-                        )}
-                        {modelConfigsLoading ? (
-                          <div className="text-center py-4">
-                            <Loader2 size={18} className="mx-auto animate-spin text-slate-400" />
+                {selectedTicket.status === "ASSIGNED" &&
+                  can(role, "maintenance", "edit") && (
+                    <div className="border-t border-slate-200 pt-3">
+                      {!showAssessForm ? (
+                        <button
+                          onClick={() => setShowAssessForm(true)}
+                          className="w-full px-3 py-2 text-sm border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <ClipboardList size={15} />
+                          Đánh giá cấu hình & tính tiền
+                        </button>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-slate-700">
+                              Đánh giá từng cấu hình
+                            </p>
+                            <button
+                              onClick={() => setShowAssessForm(false)}
+                              className="text-xs text-slate-400 hover:text-slate-600"
+                            >
+                              Hủy
+                            </button>
                           </div>
-                        ) : modelConfigs.length === 0 ? (
-                          <p className="text-xs text-slate-500">Không có cấu hình cho dòng máy này.</p>
-                        ) : (
-                          <ConfigAssessmentForm
-                            configs={modelConfigs}
-                            onSubmit={handleAssessConfigs}
-                            isSubmitting={actionLoading}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                          {assessError && (
+                            <p className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                              {assessError}
+                            </p>
+                          )}
+                          {modelConfigsLoading ? (
+                            <div className="text-center py-4">
+                              <Loader2
+                                size={18}
+                                className="mx-auto animate-spin text-slate-400"
+                              />
+                            </div>
+                          ) : modelConfigs.length === 0 ? (
+                            <p className="text-xs text-slate-500">
+                              Không có cấu hình cho dòng máy này.
+                            </p>
+                          ) : (
+                            <ConfigAssessmentForm
+                              configs={modelConfigs}
+                              onSubmit={handleAssessConfigs}
+                              isSubmitting={actionLoading}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                 {/* Progress note + log */}
-                {["ASSIGNED", "IN_PROGRESS", "AWAITING_PAYMENT"].includes(selectedTicket.status) && (
+                {["ASSIGNED", "IN_PROGRESS", "AWAITING_PAYMENT"].includes(
+                  selectedTicket.status,
+                ) && (
                   <div className="border-t border-slate-200 pt-3 space-y-2">
-                    <label className="text-xs font-medium text-slate-700 block">Cập nhật tiến độ</label>
+                    <label className="text-xs font-medium text-slate-700 block">
+                      Cập nhật tiến độ
+                    </label>
                     <textarea
                       value={progressNote}
                       onChange={(e) => setProgressNote(e.target.value)}
@@ -927,40 +1242,44 @@ export function MaintenanceTickets() {
 
                 {/* Status action buttons */}
                 <div className="pt-1 space-y-1.5">
-                  {selectedTicket.status === "IN_PROGRESS" && can(role, "maintenance", "edit") && (
-                    <>
+                  {selectedTicket.status === "IN_PROGRESS" &&
+                    can(role, "maintenance", "edit") && (
+                      <>
+                        <button
+                          onClick={() => void handleStatusUpdate("RESOLVED")}
+                          disabled={actionLoading}
+                          className="w-full px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
+                        >
+                          Đánh dấu Đã sửa xong
+                        </button>
+                        <button
+                          onClick={() => void handleStatusUpdate("REJECTED")}
+                          disabled={actionLoading}
+                          className="w-full px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60"
+                        >
+                          Từ chối
+                        </button>
+                      </>
+                    )}
+                  {selectedTicket.status === "RESOLVED" &&
+                    can(role, "maintenance", "edit") && (
                       <button
-                        onClick={() => void handleStatusUpdate("RESOLVED")}
+                        onClick={() => void handleStatusUpdate("CLOSED")}
                         disabled={actionLoading}
-                        className="w-full px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-60"
                       >
-                        Đánh dấu Đã sửa xong
+                        Đóng Ticket
                       </button>
-                      <button
-                        onClick={() => void handleStatusUpdate("REJECTED")}
-                        disabled={actionLoading}
-                        className="w-full px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-60"
-                      >
-                        Từ chối
-                      </button>
-                    </>
-                  )}
-                  {selectedTicket.status === "RESOLVED" && can(role, "maintenance", "edit") && (
-                    <button
-                      onClick={() => void handleStatusUpdate("CLOSED")}
-                      disabled={actionLoading}
-                      className="w-full px-3 py-1.5 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-60"
-                    >
-                      Đóng Ticket
-                    </button>
-                  )}
+                    )}
                 </div>
               </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <Wrench size={32} className="mx-auto text-slate-300 mb-2" />
-              <p className="text-sm text-slate-500">Chọn ticket để xem chi tiết</p>
+              <p className="text-sm text-slate-500">
+                Chọn ticket để xem chi tiết
+              </p>
             </div>
           )}
         </div>
@@ -1004,7 +1323,10 @@ function CreateMaintenanceTicketPanel({
   const [serialNumber, setSerialNumber] = useState("");
   const [serialError, setSerialError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [formData, setFormData] = useState({ technicianId: "", issueDescription: "" });
+  const [formData, setFormData] = useState({
+    technicianId: "",
+    issueDescription: "",
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -1025,8 +1347,15 @@ function CreateMaintenanceTicketPanel({
     try {
       const result = await incubatorService.list({ pageSize: 200 });
       const found = result.items.find(
-        (i) => i.serialNumber?.toLowerCase() === serialNumber.trim().toLowerCase()
+        (i) =>
+          i.serialNumber?.toLowerCase() === serialNumber.trim().toLowerCase(),
       );
+      console.log(
+        "all items",
+        result.items.map((i) => i.serialNumber),
+      ); // thêm dòng này
+      console.log("input serial", serialNumber.trim()); // thêm dòng này
+      console.log("found", found); // thêm dòng này
       if (!found) {
         setSerialError("Không tìm thấy máy ấp với số serial này.");
         return;
@@ -1056,26 +1385,37 @@ function CreateMaintenanceTicketPanel({
           <input
             type="text"
             value={serialNumber}
-            onChange={(e) => { setSerialNumber(e.target.value); setSerialError(null); }}
+            onChange={(e) => {
+              setSerialNumber(e.target.value);
+              setSerialError(null);
+            }}
             placeholder="VD: IS-001-3EFECJ"
             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               serialError ? "border-red-300" : "border-slate-300"
             }`}
           />
-          {serialError
-            ? <p className="mt-1 text-xs text-red-600">{serialError}</p>
-            : <p className="mt-1 text-xs text-slate-500">Nhập đúng số serial in trên máy ấp.</p>}
+          {serialError ? (
+            <p className="mt-1 text-xs text-red-600">{serialError}</p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-500">
+              Nhập đúng số serial in trên máy ấp.
+            </p>
+          )}
         </div>
         <div>
           <OptionalLabel>Kỹ thuật viên</OptionalLabel>
           <select
             value={formData.technicianId}
-            onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, technicianId: e.target.value })
+            }
             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Chưa phân công</option>
             {technicians.map((t) => (
-              <option key={t.id} value={t.id}>{t.fullName}</option>
+              <option key={t.id} value={t.id}>
+                {t.fullName}
+              </option>
             ))}
           </select>
         </div>
@@ -1083,7 +1423,9 @@ function CreateMaintenanceTicketPanel({
           <RequiredLabel>Mô tả sự cố</RequiredLabel>
           <textarea
             value={formData.issueDescription}
-            onChange={(e) => setFormData({ ...formData, issueDescription: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, issueDescription: e.target.value })
+            }
             placeholder="Mô tả vấn đề khách hàng hoặc kỹ thuật viên ghi nhận..."
             rows={5}
             maxLength={1000}
@@ -1093,11 +1435,23 @@ function CreateMaintenanceTicketPanel({
           <p className="mt-1 text-xs text-slate-500">Tối đa 1000 ký tự.</p>
         </div>
         <div className="flex gap-3 border-t border-slate-200 pt-5">
-          <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          >
             Hủy
           </button>
-          <button type="submit" disabled={isSubmitting || isSearching} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60">
-            {isSearching ? "Đang tra cứu..." : isSubmitting ? "Đang tạo..." : "Tạo ticket"}
+          <button
+            type="submit"
+            disabled={isSubmitting || isSearching}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60"
+          >
+            {isSearching
+              ? "Đang tra cứu..."
+              : isSubmitting
+                ? "Đang tạo..."
+                : "Tạo ticket"}
           </button>
         </div>
       </form>
@@ -1107,11 +1461,21 @@ function CreateMaintenanceTicketPanel({
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+function DetailRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="text-xs font-medium text-slate-700 block mb-1.5">{label}</label>
-      <div className="text-xs text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded">{children}</div>
+      <label className="text-xs font-medium text-slate-700 block mb-1.5">
+        {label}
+      </label>
+      <div className="text-xs text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded">
+        {children}
+      </div>
     </div>
   );
 }
@@ -1122,7 +1486,9 @@ function LogItem({ log }: { log: MaintenanceLog }) {
       <p className="font-medium text-slate-900 text-xs mb-0.5">
         {formatDateTime(log.createdAt)}
       </p>
-      <p className="text-xs text-slate-600">{log.description || "Không có nội dung."}</p>
+      <p className="text-xs text-slate-600">
+        {log.description || "Không có nội dung."}
+      </p>
     </div>
   );
 }

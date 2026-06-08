@@ -17,7 +17,7 @@ const buildIncubatorQuery = ({
 }: ListIncubatorsParams) => {
   const params = new URLSearchParams({
     page: String(page),
-    pageSize: String(pageSize),
+    size : String(pageSize),
   });
 
   if (status && status !== "all") {
