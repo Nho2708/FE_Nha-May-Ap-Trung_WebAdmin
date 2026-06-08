@@ -104,7 +104,6 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
     email: '',
     address: '',
     description: '',
-    verificationPass: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +120,7 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
     onClose();
     setStep(1);
     setItems([{ incubatorModelId: '', quantity: 1 }]);
-    setCustomerInfo({ fullName: '', phone: '', email: '', address: '', description: '', verificationPass: '' });
+    setCustomerInfo({ fullName: '', phone: '', email: '', address: '', description: '' });
     setError(null);
     setCreatedOrder(null);
     setTouched({});
@@ -162,8 +161,8 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
     customerInfo.fullName.trim() &&
     customerInfo.phone.trim() &&
     VN_PHONE_RE.test(customerInfo.phone.trim()) &&
-    customerInfo.address.trim().length >= 10 &&
-    customerInfo.verificationPass.length >= 6;
+    customerInfo.email.trim() &&
+    customerInfo.address.trim().length >= 10;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,13 +171,14 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
     setLoading(true);
     setError(null);
     try {
+      const verificationPass = Math.random().toString(36).slice(2, 10);
       const response = await orderService.createByGuest({
         fullName: customerInfo.fullName.trim(),
         phone: customerInfo.phone.trim(),
-        email: customerInfo.email.trim() || undefined,
+        email: customerInfo.email.trim(),
         shippingAddress: customerInfo.address.trim() || undefined,
         description: customerInfo.description.trim() || undefined,
-        verificationPass: customerInfo.verificationPass,
+        verificationPass,
         items,
       });
       onSubmit();
@@ -343,27 +343,15 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
                   {phoneError && <p className="mt-1 text-xs text-red-600">{phoneError}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1.5">Email</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                    Email <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="email"
                     name="email"
                     value={customerInfo.email}
                     onChange={handleCustomerChange}
                     placeholder="example@email.com"
-                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                    Mật Khẩu Xác Nhận <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    name="verificationPass"
-                    value={customerInfo.verificationPass}
-                    onChange={handleCustomerChange}
-                    placeholder="Tối thiểu 6 ký tự"
-                    minLength={6}
                     className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     required
                   />
