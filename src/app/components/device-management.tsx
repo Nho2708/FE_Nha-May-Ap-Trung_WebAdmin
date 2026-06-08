@@ -57,6 +57,8 @@ export function DeviceManagement() {
   const [incubators, setIncubators] = useState<Incubator[]>([]);
   const [selectedIncubator, setSelectedIncubator] = useState<Incubator | null>(null);
   const [statusFilter, setStatusFilter] = useState<IncubatorStatus | "all">("all");
+  const [modelFilter, setModelFilter] = useState<string>("");
+  const [models, setModels] = useState<IncubatorModel[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -68,13 +70,14 @@ export function DeviceManagement() {
 
   const itemsPerPage = 10;
 
-  const loadIncubators = async (page = currentPage, status = statusFilter) => {
+  const loadIncubators = async (page = currentPage, status = statusFilter, modelId = modelFilter) => {
     setLoading(true);
     setError(null);
 
     try {
       const result = await incubatorService.list({
         status,
+        modelId: modelId || undefined,
         page,
         pageSize: itemsPerPage,
       });
@@ -126,8 +129,12 @@ export function DeviceManagement() {
   };
 
   useEffect(() => {
-    void loadIncubators(currentPage, statusFilter);
-  }, [currentPage, statusFilter]);
+    incubatorModelService.list({ pageSize: 100 }).then(r => setModels(r.items)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    void loadIncubators(currentPage, statusFilter, modelFilter);
+  }, [currentPage, statusFilter, modelFilter]);
 
   return (
     <div className="space-y-6">
@@ -144,6 +151,21 @@ export function DeviceManagement() {
               Tạo Máy Ấp
             </button>
           )}
+          <select
+            value={modelFilter}
+            onChange={(event) => {
+              setCurrentPage(1);
+              setModelFilter(event.target.value);
+            }}
+            className="px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            <option value="">Tất cả dòng máy</option>
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
           <select
             value={statusFilter}
             onChange={(event) => {

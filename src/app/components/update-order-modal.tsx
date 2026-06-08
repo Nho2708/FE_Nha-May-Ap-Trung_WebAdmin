@@ -67,17 +67,15 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
         if (!data?.items?.length) return;
         const modelIds = [...new Set(data.items.map((i) => i.incubatorModelId))];
         const incubatorIds = data.items.map((i) => i.incubatorId).filter(Boolean) as string[];
-        const [models, incubators] = await Promise.all([
+        const [models, incubatorList] = await Promise.all([
           incubatorModelService.list({ pageSize: 200 }).catch(() => ({ items: [] })),
-          incubatorIds.length
-            ? incubatorService.list({ pageSize: 200 }).catch(() => ({ items: [] }))
-            : Promise.resolve({ items: [] }),
+          Promise.all(incubatorIds.map((id) => incubatorService.getById(id).catch(() => null))),
         ]);
         setModelCodeMap(new Map(
           models.items.filter((m) => modelIds.includes(m.id)).map((m) => [m.id, m.name])
         ));
         setSerialMap(new Map(
-          incubators.items.filter((i) => i.serialNumber).map((i) => [i.id, i.serialNumber as string])
+          incubatorList.filter(Boolean).map((i) => [i!.id, i!.serialNumber ?? i!.id])
         ));
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Không thể tải chi tiết'))

@@ -3,6 +3,7 @@ import { Egg, RefreshCw, AlertCircle, CheckCircle, XCircle, Clock, Ban } from 'l
 import { SeasonDetailModal } from './season-detail-modal';
 import { Pagination } from './pagination';
 import { useSession } from '@/hooks/use-session';
+import { can } from '@/config/permissions';
 import { hatchingSeasonService } from '@/services/hatchingSeasons';
 import type { HatchingSeason, HatchingSeasonStatus } from '@/types/hatching';
 
@@ -33,6 +34,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 export function HatchingSeasons() {
   const session = useSession();
+  const role = session?.role;
 
   const [seasons, setSeasons] = useState<HatchingSeason[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -74,9 +76,11 @@ export function HatchingSeasons() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">Quản Lý Mùa Ấp</h2>
-        <button onClick={() => fetchSeasons(currentPage, statusFilter)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Làm mới">
-          <RefreshCw size={16} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => fetchSeasons(currentPage, statusFilter)} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Làm mới">
+            <RefreshCw size={16} />
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -162,6 +166,7 @@ export function HatchingSeasons() {
       <SeasonDetailModal
         isOpen={!!selectedSeason}
         onClose={() => setSelectedSeason(null)}
+        onUpdated={() => fetchSeasons(currentPage, statusFilter)}
         season={selectedSeason}
       />
     </div>

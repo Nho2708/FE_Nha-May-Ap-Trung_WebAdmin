@@ -62,6 +62,7 @@ export function SalesOrders() {
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [qrOrder, setQrOrder] = useState<SalesOrder | null>(null);
+  const [completingOrderId, setCompletingOrderId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
 
   const pageSize = 10;
@@ -133,6 +134,19 @@ export function SalesOrders() {
   const openUpdateModal = (order: SalesOrder) => {
     setSelectedOrder(order);
     setIsUpdateModalOpen(true);
+  };
+
+  const handleCompleteOrder = async (order: SalesOrder) => {
+    if (!window.confirm(`Xác nhận hoàn thành đơn hàng ${order.orderCode ?? order.id.slice(0, 8).toUpperCase()}?`)) return;
+    setCompletingOrderId(order.id);
+    try {
+      await orderService.complete(order.id);
+      fetchOrders(currentPage, statusFilter);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể hoàn thành đơn hàng');
+    } finally {
+      setCompletingOrderId(null);
+    }
   };
 
   const handleResendVerification = async (order: SalesOrder) => {
@@ -272,6 +286,19 @@ export function SalesOrders() {
                                 className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
                               >
                                 <QrCode size={16} />
+                              </button>
+                            )}
+                            {can(role, "orders", "edit") && order.status === 'SHIPPING' && (
+                              <button
+                                onClick={() => handleCompleteOrder(order)}
+                                disabled={completingOrderId === order.id}
+                                title="Hoàn thành đơn hàng"
+                                className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {completingOrderId === order.id
+                                  ? <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                                  : <CheckCircle size={16} />
+                                }
                               </button>
                             )}
                             <ResourceActionsMenu

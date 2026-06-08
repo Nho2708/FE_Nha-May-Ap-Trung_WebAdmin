@@ -35,7 +35,7 @@ export const navigationItems: NavigationItem[] = [
     id: "dashboard",
     label: "Tổng Quan",
     icon: LayoutDashboard,
-    roles: ["ADMIN", "SALES_STAFF", "TECHNICIAN"],
+    roles: ["ADMIN"],
   },
   {
     id: "devices",
