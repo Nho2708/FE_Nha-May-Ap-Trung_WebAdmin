@@ -10,6 +10,8 @@ import { HatchingSeasons } from "./components/hatching-seasons";
 import { MaintenanceTickets } from "./components/maintenance-tickets";
 import { UserStaffManagement } from "./components/user-staff-management";
 import { WarrantyManagement } from "./components/warranty-management";
+import { RagData } from "./components/rag-data";
+import { MlTraining } from "./components/ml-training";
 import { AIChat } from "./components/ai-chat";
 import { LoginScreen } from "./components/login-screen";
 import { authService, authStorage } from "@/services/auth";
@@ -69,6 +71,10 @@ export default function App() {
         return <UserStaffManagement />;
       case "warranty":
         return <WarrantyManagement />;
+      case "rag-data":
+        return <RagData />;
+      case "ml-training":
+        return <MlTraining />;
       default:
         return <AdminDashboard />;
     }
