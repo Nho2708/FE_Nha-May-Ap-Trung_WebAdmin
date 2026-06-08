@@ -30,6 +30,9 @@ export const userService = {
   list(params: ListUsersParams = {}) {
     return http.get<PagedResult<User>>(`/users?${buildUserQuery(params)}`);
   },
+  getById(id: string) {
+    return http.get<User | null>(`/users/${id}`);
+  },
   create(payload: CreateUserPayload) {
     return http.post<string>("/users", payload);
   },

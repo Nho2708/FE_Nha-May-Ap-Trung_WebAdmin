@@ -96,6 +96,15 @@ export function SalesOrders() {
     };
   }, [fetchOrders, currentPage, statusFilter, qrOrder]);
 
+  // Tắt QR modal ngay khi orders list phát hiện đơn đã thanh toán
+  useEffect(() => {
+    if (!qrOrder) return;
+    const updated = orders.find((o) => o.id === qrOrder.id);
+    if (updated?.paymentStatus === 'PAID') {
+      setQrOrder(null);
+    }
+  }, [orders, qrOrder]);
+
   // Poll payment status khi QR mở
   useEffect(() => {
     if (!qrOrder) return;

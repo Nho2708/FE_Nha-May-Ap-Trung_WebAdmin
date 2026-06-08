@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Wrench,
   Clock,
@@ -274,11 +274,19 @@ export function MaintenanceTickets() {
   const [showQR, setShowQR] = useState(false);
 
   const ticketsPerPage = 10;
+  const fetchedIncubatorIds = useRef<Set<string>>(new Set());
+  const fetchedTechnicianIds = useRef<Set<string>>(new Set());
+  const [extraTechnicianMap, setExtraTechnicianMap] = useState<Map<string, string>>(new Map());
 
   const technicianMap = useMemo(
     () => new Map(technicians.map((u) => [u.id, u.fullName])),
     [technicians]
   );
+
+  const getTechnicianName = (id: string | null) => {
+    if (!id) return "Chưa phân công";
+    return technicianMap.get(id) ?? extraTechnicianMap.get(id) ?? "—";
+  };
 
   const loadStats = async () => {
     const [all, pending, assigned, inProgress, awaitingPayment, resolved, closed] = await Promise.all([
@@ -362,6 +370,26 @@ export function MaintenanceTickets() {
     try {
       const detail = await maintenanceService.getById(ticketId);
       setSelectedDetail(detail);
+
+      if (detail?.ticket) {
+        const { incubatorId, technicianId } = detail.ticket;
+        if (incubatorId && !fetchedIncubatorIds.current.has(incubatorId)) {
+          fetchedIncubatorIds.current.add(incubatorId);
+          incubatorService.getById(incubatorId).then((inc) => {
+            if (inc?.serialNumber) {
+              setIncubatorSerialMap((prev) => new Map([...prev, [incubatorId, inc.serialNumber as string]]));
+            }
+          }).catch(() => {});
+        }
+        if (technicianId && !fetchedTechnicianIds.current.has(technicianId) && !technicianMap.has(technicianId)) {
+          fetchedTechnicianIds.current.add(technicianId);
+          userService.getById(technicianId).then((user) => {
+            if (user?.fullName) {
+              setExtraTechnicianMap((prev) => new Map([...prev, [technicianId, user.fullName]]));
+            }
+          }).catch(() => {});
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không thể tải chi tiết ticket.");
     } finally {
@@ -383,6 +411,13 @@ export function MaintenanceTickets() {
 
   useEffect(() => {
     void Promise.all([loadStats(), loadTechnicians(), loadIncubatorSerials()]);
+    if (session?.userId) {
+      userService.getById(session.userId).then((user) => {
+        if (user?.fullName) {
+          setExtraTechnicianMap((prev) => new Map([...prev, [session.userId!, user.fullName]]));
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -396,6 +431,22 @@ export function MaintenanceTickets() {
       setSelectedDetail(null);
     }
   }, [selectedTicketId]);
+
+  // Fetch serials for tickets not yet in the map (handles roles that can't call list)
+  useEffect(() => {
+    const ids = [...new Set(tickets.map((t) => t.incubatorId))];
+    const missing = ids.filter((id) => !fetchedIncubatorIds.current.has(id));
+    missing.forEach((id) => fetchedIncubatorIds.current.add(id));
+    if (missing.length === 0) return;
+    Promise.all(missing.map((id) => incubatorService.getById(id).catch(() => null))).then((results) => {
+      const newEntries = results
+        .filter((inc): inc is NonNullable<typeof inc> => inc !== null && inc.serialNumber != null)
+        .map((inc): [string, string] => [inc.id, inc.serialNumber as string]);
+      if (newEntries.length > 0) {
+        setIncubatorSerialMap((prev) => new Map([...prev, ...newEntries]));
+      }
+    });
+  }, [tickets]);
 
   // Load model configs when ASSIGNED ticket is selected and assess form opens
   useEffect(() => {
@@ -590,11 +641,11 @@ export function MaintenanceTickets() {
                     <div className="text-slate-600">
                       Tạo lúc <span className="font-medium text-slate-800">{formatDateTime(ticket.createdAt)}</span>
                     </div>
-                    <span className="text-blue-600 font-medium text-xs">
-                      {ticket.technicianId
-                        ? technicianMap.get(ticket.technicianId) || formatShortId(ticket.technicianId)
-                        : "Chưa phân công"}
-                    </span>
+                    {role !== "TECHNICIAN" && (
+                      <span className="text-blue-600 font-medium text-xs">
+                        {getTechnicianName(ticket.technicianId)}
+                      </span>
+                    )}
                   </div>
                   <div className="mt-2 flex justify-end">
                     <ResourceActionsMenu
@@ -640,11 +691,11 @@ export function MaintenanceTickets() {
                 <DetailRow label="Máy ấp">
                   {incubatorSerialMap.get(selectedTicket.incubatorId) ?? "—"}
                 </DetailRow>
-                <DetailRow label="Kỹ thuật viên">
-                  {selectedTicket.technicianId
-                    ? technicianMap.get(selectedTicket.technicianId) || "—"
-                    : "Chưa phân công"}
-                </DetailRow>
+                {role !== "TECHNICIAN" && (
+                  <DetailRow label="Kỹ thuật viên">
+                    {getTechnicianName(selectedTicket.technicianId)}
+                  </DetailRow>
+                )}
 
                 {/* Assign technician — for PENDING or ASSIGNED tickets */}
                 {["PENDING", "ASSIGNED"].includes(selectedTicket.status) && can(role, "maintenance", "edit") && (
@@ -767,7 +818,7 @@ export function MaintenanceTickets() {
                         return (
                           <div key={ci.id} className="bg-slate-50 rounded px-2.5 py-2 text-xs space-y-0.5">
                             <div className="flex items-center justify-between">
-                              <span className="font-medium text-slate-800">{ci.configName || ci.configCode || ci.configId.slice(0, 8)}</span>
+                              <span className="font-medium text-slate-800">{ci.configName || ci.configCode || "—"}</span>
                               <span className="font-semibold text-blue-700">{formatCurrency(ci.finalPrice)}</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -791,7 +842,7 @@ export function MaintenanceTickets() {
                   <div>
                     <label className="text-xs font-medium text-slate-700 block mb-1.5">Bảo hành</label>
                     <div className="text-xs text-slate-700 bg-slate-50 px-2.5 py-2 rounded space-y-1">
-                      <p>Mã BH: <span className="font-medium">{selectedDetail.warranty.warrantyCode ?? selectedDetail.warranty.id.slice(0, 12) + "..."}</span></p>
+                      <p>Mã BH: <span className="font-medium">{selectedDetail.warranty.warrantyCode || "—"}</span></p>
                       <p>Đến: {selectedDetail.warranty.endDate
                         ? new Date(selectedDetail.warranty.endDate).toLocaleDateString("vi-VN")
                         : "--"}</p>

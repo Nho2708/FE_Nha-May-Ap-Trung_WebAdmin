@@ -133,8 +133,7 @@ export function CreateTemplateModal({ isOpen, onClose, onSubmit }: CreateTemplat
               maxValue: c.maxValue ? Number(c.maxValue) : undefined,
             })),
         })),
-      };
-      await hatchingSeasonTemplateService.create(payload);
+      });
       onSubmit();
       onClose();
       setFormData({ name: '', eggType: '', description: '' });

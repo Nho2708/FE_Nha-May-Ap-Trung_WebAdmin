@@ -16,7 +16,9 @@ function ModelPicker({
   onChange: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const selected = models.find((m) => m.id === value) ?? null;
 
   useEffect(() => {
@@ -27,11 +29,26 @@ function ModelPicker({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const handleOpen = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+    setOpen((o) => !o);
+  };
+
   return (
     <div ref={ref} className="relative">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={handleOpen}
         className="w-full flex items-center gap-2 px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 text-left transition-colors"
       >
         {selected ? (
@@ -55,7 +72,7 @@ function ModelPicker({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl p-1">
+        <div style={dropdownStyle} className="max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl p-1">
           {models.length === 0 ? (
             <p className="text-xs text-slate-400 px-3 py-2">Không có dòng máy nào.</p>
           ) : (
@@ -76,7 +93,7 @@ function ModelPicker({
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{m.name}</p>
+                  <p className="text-sm font-medium text-slate-800">{m.name}</p>
                   <p className="text-xs text-slate-500">{m.modelCode} · {m.unitPrice.toLocaleString('vi-VN')} ₫</p>
                 </div>
               </button>
@@ -113,17 +130,33 @@ export function CreateOrderModal({ isOpen, onClose, onSubmit }: CreateOrderModal
   useEffect(() => {
     if (isOpen) {
       incubatorModelService.list({ pageSize: 50 }).then((result) => setModels(result.items)).catch(() => {});
+    } else {
+      setStep(1);
+      setItems([{ incubatorModelId: '', quantity: 1 }]);
+      setCustomerInfo({ fullName: '', phone: '', email: '', address: '', description: '' });
+      setError(null);
+      setCreatedOrder(null);
+      setTouched({});
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (step !== 3 || !createdOrder?.orderId) return;
+    const interval = setInterval(async () => {
+      try {
+        const detail = await orderService.getById(createdOrder.orderId);
+        if (detail?.order?.paymentStatus === 'PAID') {
+          handleClose();
+        }
+      } catch {
+        // silent
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [step, createdOrder?.orderId]);
+
   const handleClose = () => {
     onClose();
-    setStep(1);
-    setItems([{ incubatorModelId: '', quantity: 1 }]);
-    setCustomerInfo({ fullName: '', phone: '', email: '', address: '', description: '' });
-    setError(null);
-    setCreatedOrder(null);
-    setTouched({});
   };
 
   const markTouched = (field: string) =>
