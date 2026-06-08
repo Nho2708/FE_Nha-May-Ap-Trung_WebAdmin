@@ -4,6 +4,8 @@ import { Pagination } from './pagination';
 import { can } from '@/config/permissions';
 import { useSession } from '@/hooks/use-session';
 import { incubatorService } from '@/services/incubators';
+import { incubatorModelService } from '@/services/incubatorModels';
+import type { IncubatorModel } from '@/types/incubator-model';
 import { warrantyService } from '@/services/warranties';
 import type { Incubator, IncubatorStatus } from '@/types/incubator';
 import type { WarrantySummary } from '@/types/maintenance';
@@ -63,22 +65,54 @@ export function WarrantyManagement() {
   const [formSubmitting, setFormSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const [modelsMap, setModelsMap] = useState<Record<string, IncubatorModel>>({});
+
   const pageSize = 10;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await incubatorModelService.list({ pageSize: 1000 });
+        if (!cancelled) {
+          const map: Record<string, IncubatorModel> = {};
+          res.items.forEach((m) => (map[m.id] = m));
+          setModelsMap(map);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const fetchIncubators = useCallback(async (page = 1, search = '') => {
     setLoading(true);
     setError(null);
     try {
       if (search.trim()) {
-        // Backend doesn't support search param; fetch large batch and filter client-side
-        const result = await incubatorService.list({ page: 1, pageSize: 1000 });
         const keyword = search.trim().toLowerCase();
-        const filtered = result.items.filter(
-          (inc) =>
-            (inc.serialNumber ?? '').toLowerCase().includes(keyword) ||
-            (inc.modelName ?? '').toLowerCase().includes(keyword)
-        );
+        // Fetch first page to get total count
+        const firstResult = await incubatorService.list({ page: 1, pageSize: 1000, status: 'all' });
+        let allItems = [...firstResult.items];
+        
+        // Fetch remaining pages if needed
+        const totalPages = firstResult.totalPages || 1;
+        for (let p = 2; p <= totalPages; p++) {
+          const res = await incubatorService.list({ page: p, pageSize: 1000, status: 'all' });
+          allItems = allItems.concat(res.items);
+        }
+        
+        // Filter by serial number contains match
+        const filtered = allItems.filter((inc) => {
+          const serial = (inc.serialNumber ?? '').toLowerCase().trim();
+          return serial.includes(keyword);
+        });
         const start = (page - 1) * pageSize;
+
         setIncubators(filtered.slice(start, start + pageSize));
         setTotalIncubators(filtered.length);
         setTotalPages(Math.max(1, Math.ceil(filtered.length / pageSize)));
