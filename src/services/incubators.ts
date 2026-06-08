@@ -5,6 +5,7 @@ import type { CreateIncubatorPayload, Incubator, IncubatorStatus } from "@/types
 interface ListIncubatorsParams {
   status?: IncubatorStatus | "all";
   modelId?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
 }
@@ -12,6 +13,7 @@ interface ListIncubatorsParams {
 const buildIncubatorQuery = ({
   status,
   modelId,
+  search,
   page = 1,
   pageSize = 10,
 }: ListIncubatorsParams) => {
@@ -26,6 +28,10 @@ const buildIncubatorQuery = ({
 
   if (modelId) {
     params.set("modelId", modelId);
+  }
+
+  if (search && search.trim()) {
+    params.set("search", search.trim());
   }
 
   return params.toString();

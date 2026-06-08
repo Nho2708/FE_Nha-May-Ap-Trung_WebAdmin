@@ -49,6 +49,7 @@ export function WarrantyManagement() {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [committedSearch, setCommittedSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,11 +65,11 @@ export function WarrantyManagement() {
 
   const pageSize = 10;
 
-  const fetchIncubators = useCallback(async (page = 1) => {
+  const fetchIncubators = useCallback(async (page = 1, search = '') => {
     setLoading(true);
     setError(null);
     try {
-      const result = await incubatorService.list({ page, pageSize });
+      const result = await incubatorService.list({ page, pageSize, search: search || undefined });
       setIncubators(result.items);
       setTotalIncubators(result.totalItems);
       setTotalPages(result.totalPages);
@@ -80,8 +81,8 @@ export function WarrantyManagement() {
   }, []);
 
   useEffect(() => {
-    fetchIncubators(currentPage);
-  }, [fetchIncubators, currentPage]);
+    fetchIncubators(currentPage, committedSearch);
+  }, [fetchIncubators, currentPage, committedSearch]);
 
   const fetchWarranty = async (incubator: Incubator) => {
     setSelectedIncubator(incubator);
@@ -145,12 +146,10 @@ export function WarrantyManagement() {
     }
   };
 
-  const filteredIncubators = searchTerm.trim()
-    ? incubators.filter((inc) =>
-        inc.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inc.modelName?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : incubators;
+  const handleSearch = () => {
+    setCurrentPage(1);
+    setCommittedSearch(searchTerm);
+  };
 
   const isWarrantyExpired = warranty?.endDate
     ? new Date(warranty.endDate) < new Date()
@@ -184,15 +183,26 @@ export function WarrantyManagement() {
         {/* Incubator List */}
         <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-200">
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Tìm theo serial hoặc dòng máy..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm theo serial hoặc dòng máy..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center gap-1.5"
+              >
+                <Search size={14} />
+                Tìm
+              </button>
             </div>
           </div>
 
@@ -213,7 +223,7 @@ export function WarrantyManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIncubators.map((inc) => (
+                  {incubators.map((inc) => (
                     <tr
                       key={inc.id}
                       onClick={() => void fetchWarranty(inc)}
@@ -235,7 +245,7 @@ export function WarrantyManagement() {
                       </td>
                     </tr>
                   ))}
-                  {filteredIncubators.length === 0 && (
+                  {incubators.length === 0 && (
                     <tr>
                       <td colSpan={4} className="py-8 text-center text-slate-400 text-sm">Không có kết quả</td>
                     </tr>

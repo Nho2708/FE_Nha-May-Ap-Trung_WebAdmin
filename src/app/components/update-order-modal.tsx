@@ -174,7 +174,7 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
         orderItemId: item.id,
         incubatorId: state.selectedId,
       });
-      closeAssignPanel(item.id);
+      setAssignMap({});
       loadDetail();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Không thể gán máy');
@@ -185,11 +185,12 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
 
   if (!isOpen || !order) return null;
 
+  const effectiveOrder = detail?.order ?? order;
   const canEdit = can(role, 'orders', 'edit');
-  const canShip = canEdit && order.status === 'PROCESSING';
-  const canComplete = canEdit && order.status === 'SHIPPING';
-  const canCancel = canEdit && (order.status === 'PENDING' || order.status === 'PROCESSING' || order.status === 'SHIPPING');
-  const canAssign = canEdit && order.paymentStatus === 'PAID';
+  const canShip = canEdit && effectiveOrder.status === 'PROCESSING';
+  const canComplete = canEdit && effectiveOrder.status === 'SHIPPING';
+  const canCancel = canEdit && (effectiveOrder.status === 'PENDING' || effectiveOrder.status === 'PROCESSING' || effectiveOrder.status === 'SHIPPING');
+  const canAssign = canEdit && effectiveOrder.paymentStatus === 'PAID';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
