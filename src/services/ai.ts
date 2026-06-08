@@ -13,10 +13,34 @@ export interface RagUploadResponse {
   message: string;
 }
 
-export interface MlSyncResponse {
-  clearedCacheGroups: number;
-  clearedSyntheticCache: number;
-  clearedPrebuiltModelCache: number;
+export interface MlTrainingPhaseParameter {
+  configCode: string;
+  targetValue: number;
+  minValue: number;
+  maxValue: number;
+}
+
+export interface MlTrainingPhase {
+  phaseIndex: number;
+  phaseName: string;
+  dayStart: number;
+  dayEnd: number;
+  parameters: MlTrainingPhaseParameter[];
+}
+
+export interface MlTrainingAddRequest {
+  eggType: string;
+  totalEggs: number;
+  expectedSuccessRate: number;
+  ambientTemperature?: number;
+  ambientHumidity?: number;
+  phases: MlTrainingPhase[];
+}
+
+export interface MlTrainingAddResponse {
+  recordsAdded: number;
+  totalRecords: number;
+  validationIssues: string[];
   message: string;
 }
 
@@ -29,7 +53,7 @@ export const aiService = {
     form.append("file", file);
     return http.post<RagUploadResponse>("/ai/rag/upload", form);
   },
-  syncTraining() {
-    return http.post<MlSyncResponse>("/ai/training/sync");
+  addTrainingData(request: MlTrainingAddRequest) {
+    return http.post<MlTrainingAddResponse>("/ai/training/data", request);
   },
 };
