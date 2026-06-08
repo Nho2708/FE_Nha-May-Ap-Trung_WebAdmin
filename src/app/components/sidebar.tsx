@@ -26,12 +26,11 @@ export function Sidebar({ currentPage, onPageChange, role, username }: SidebarPr
 
   return (
     <aside className="w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white flex flex-col">
-      <div className="p-6 border-b border-slate-700">
-        <h2 className="text-xl font-bold">IncuSmart Admin</h2>
-        <p className="text-sm text-slate-400 mt-1">Quản lý máy ấp trứng</p>
+      <div className="px-4 py-4 border-b border-slate-700 flex items-center justify-center">
+        <img src="/logo.png" alt="IncuSmart" className="h-28 w-auto object-contain" />
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto hide-scrollbar">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
