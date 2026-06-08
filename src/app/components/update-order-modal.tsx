@@ -18,7 +18,7 @@ interface UpdateOrderModalProps {
 const ORDER_STATUS_LABEL: Record<string, string> = {
   PENDING: 'Chờ xử lý',
   PROCESSING: 'Đang xử lý',
-  SHIPPING: 'Đã gửi ship',
+  SHIPPING: 'Đang giao hàng',
   COMPLETED: 'Hoàn thành',
   CANCELLED: 'Đã hủy',
 };
@@ -97,7 +97,7 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
       await orderService.ship(order.id);
       onSubmit();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể xác nhận gửi ship');
+      setError(err instanceof Error ? err.message : 'Không thể xác nhận giao hàng');
     } finally {
       setActionLoading(null);
     }
@@ -188,7 +188,7 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
   const canEdit = can(role, 'orders', 'edit');
   const canShip = canEdit && order.status === 'PROCESSING';
   const canComplete = canEdit && order.status === 'SHIPPING';
-  const canCancel = canEdit && (order.status === 'PENDING' || order.status === 'PROCESSING');
+  const canCancel = canEdit && (order.status === 'PENDING' || order.status === 'PROCESSING' || order.status === 'SHIPPING');
   const canAssign = canEdit && order.paymentStatus === 'PAID';
 
   return (
@@ -390,7 +390,7 @@ export function UpdateOrderModal({ isOpen, onClose, onSubmit, order }: UpdateOrd
                 className="flex-1 px-4 py-2.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Truck size={16} />
-                {actionLoading === 'ship' ? 'Đang xử lý...' : 'Gửi Ship'}
+                {actionLoading === 'ship' ? 'Đang xử lý...' : 'Giao Hàng'}
               </button>
             )}
             {canComplete && (

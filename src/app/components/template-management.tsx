@@ -10,6 +10,13 @@ import { hatchingSeasonTemplateService } from '@/services/hatchingSeasonTemplate
 import { configService, type Config } from '@/services/configs';
 import type { HatchingSeasonTemplate, HatchingSeasonTemplateDetail } from '@/types/hatching';
 
+const EGG_TYPE_LABEL: Record<string, string> = {
+  CHICKEN: 'Gà',
+  DUCK: 'Vịt',
+  QUAIL: 'Cút',
+  PIGEON: 'Bồ câu',
+};
+
 const EGG_TYPE_ICONS: Record<string, string> = {
   'Gà': '🐔', 'Vịt': '🦆', 'Ngỗng': '🦢', 'Chim': '🐦', 'Đà điểu': '🦤', 'Cút': '🐦',
   'CHICKEN': '🐔', 'DUCK': '🦆', 'QUAIL': '🐦', 'PIGEON': '🕊️',
@@ -20,7 +27,7 @@ const EGG_TYPE_LABELS: Record<string, string> = {
 };
 
 const getEggIcon = (eggType: string | null) => EGG_TYPE_ICONS[eggType ?? ''] ?? '🥚';
-const getEggLabel = (eggType: string | null) => EGG_TYPE_LABELS[eggType ?? ''] ?? eggType ?? '';
+const getEggLabel = (eggType: string | null) => EGG_TYPE_LABEL[eggType ?? ''] ?? eggType ?? '—';
 
 export function TemplateManagement() {
   const session = useSession();
