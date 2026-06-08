@@ -675,6 +675,36 @@ export function IncubatorModelManagement() {
                   <StatusBadge status={selectedModel.status} />
                 </div>
               </div>
+
+              {selectedModel.configs && selectedModel.configs.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-2">
+                    Cấu hình ({selectedModel.configs.length})
+                  </p>
+                  <div className="space-y-2">
+                    {selectedModel.configs.map((cfg) => (
+                      <div key={cfg.configId} className="bg-slate-50 rounded-lg px-3 py-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-slate-800">
+                            {cfg.configName || cfg.configCode || cfg.configId.slice(0, 8)}
+                            {cfg.configUnit ? ` (${cfg.configUnit})` : ''}
+                          </span>
+                          <div className="flex items-center gap-2 text-slate-500">
+                            {cfg.quantity != null && <span>SL: {cfg.quantity}</span>}
+                            {cfg.required && <span className="text-blue-600 font-medium">Bắt buộc</span>}
+                          </div>
+                        </div>
+                        {(cfg.absoluteMin != null || cfg.absoluteMax != null) && (
+                          <p className="text-slate-400 mt-0.5">
+                            Giới hạn: {cfg.absoluteMin ?? '—'} – {cfg.absoluteMax ?? '—'}
+                            {cfg.configUnit ? ` ${cfg.configUnit}` : ''}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-12">

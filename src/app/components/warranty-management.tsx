@@ -69,10 +69,25 @@ export function WarrantyManagement() {
     setLoading(true);
     setError(null);
     try {
-      const result = await incubatorService.list({ page, pageSize, search: search || undefined });
-      setIncubators(result.items);
-      setTotalIncubators(result.totalItems);
-      setTotalPages(result.totalPages);
+      if (search.trim()) {
+        // Backend doesn't support search param; fetch large batch and filter client-side
+        const result = await incubatorService.list({ page: 1, pageSize: 1000 });
+        const keyword = search.trim().toLowerCase();
+        const filtered = result.items.filter(
+          (inc) =>
+            (inc.serialNumber ?? '').toLowerCase().includes(keyword) ||
+            (inc.modelName ?? '').toLowerCase().includes(keyword)
+        );
+        const start = (page - 1) * pageSize;
+        setIncubators(filtered.slice(start, start + pageSize));
+        setTotalIncubators(filtered.length);
+        setTotalPages(Math.max(1, Math.ceil(filtered.length / pageSize)));
+      } else {
+        const result = await incubatorService.list({ page, pageSize });
+        setIncubators(result.items);
+        setTotalIncubators(result.totalItems);
+        setTotalPages(result.totalPages);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách máy ấp');
     } finally {
@@ -163,7 +178,7 @@ export function WarrantyManagement() {
           Quản Lý Bảo Hành
         </h2>
         <button
-          onClick={() => fetchIncubators(currentPage)}
+          onClick={() => fetchIncubators(currentPage, committedSearch)}
           disabled={loading}
           className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60"
           title="Làm mới"
