@@ -8,6 +8,8 @@ import {
   ShoppingCart,
   Users,
   Wrench,
+  Database,
+  BrainCircuit,
 } from "lucide-react";
 import type { ElementType } from "react";
 import type { UserRole } from "@/types/user";
@@ -21,7 +23,9 @@ export type PageType =
   | "hatching-seasons"
   | "maintenance"
   | "users"
-  | "warranty";
+  | "warranty"
+  | "rag-data"
+  | "ml-training";
 
 export interface NavigationItem {
   id: PageType;
@@ -83,6 +87,18 @@ export const navigationItems: NavigationItem[] = [
     id: "users",
     label: "Người Dùng",
     icon: Users,
+    roles: ["ADMIN"],
+  },
+  {
+    id: "rag-data",
+    label: "Dữ Liệu RAG",
+    icon: Database,
+    roles: ["ADMIN"],
+  },
+  {
+    id: "ml-training",
+    label: "ML Training",
+    icon: BrainCircuit,
     roles: ["ADMIN"],
   },
 ];
